@@ -61,6 +61,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
       remote: FFAppState().isRemote,
       ignoredPopUp: true,
       createdAt: functions.timeNowTZ(),
+      screenshot: widget.screenshotBase64,
     );
   }
 

@@ -74,11 +74,11 @@ class _LogoutWidgetState extends State<LogoutWidget> {
           safeSetState(() {});
 
           String? screenshotBase64;
+          final rawScreenshot = await captureScreenshotBase64();
+          screenshotBase64 = rawScreenshot != null
+              ? 'data:image/jpeg;base64,$rawScreenshot'
+              : null;
           if (!isWeb) {
-            final rawScreenshot = await captureScreenshotBase64();
-            screenshotBase64 = rawScreenshot != null
-                ? 'data:image/png;base64,$rawScreenshot'
-                : null;
             await Future.delayed(const Duration(seconds: 1));
             if (!mounted) {
               FFAppState().isPopupVisible = false;
