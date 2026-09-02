@@ -14,6 +14,7 @@ import 'auth/custom_auth/custom_auth_user_provider.dart';
 
 import '/backend/api_requests/api_manager.dart';
 import '/backend/supabase/supabase.dart';
+import '/desktop/update_dialog.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/internationalization.dart';
 import 'index.dart';
@@ -97,6 +98,20 @@ void main() async {
           onClicked: (menuItem) async {
             await windowManager.show();
             await windowManager.focus();
+          },
+        ),
+        MenuItemLabel(
+          label: 'Verificar atualizações',
+          onClicked: (menuItem) async {
+            await windowManager.show();
+            await windowManager.focus();
+            final context = navigatorKey.currentContext;
+            if (context != null) {
+              await checkAndPromptDesktopUpdate(
+                context: context,
+                silentIfNone: false,
+              );
+            }
           },
         ),
         MenuItemLabel(
@@ -245,6 +260,15 @@ class _MyAppState extends State<MyApp> with WindowListener {
         _appStateNotifier.update(Zoc1AuthUser(loggedIn: false));
         _appStateNotifier.stopShowingSplashImage();
         _router.go('/login');
+      }
+
+      if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = navigatorKey.currentContext;
+          if (context != null) {
+            checkAndPromptDesktopUpdate(context: context);
+          }
+        });
       }
     });
 
