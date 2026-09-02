@@ -41,28 +41,53 @@ jobs:
       - name: Empaquetar runtime de Visual C++
         shell: pwsh
         run: |
+          $releaseDir = "build\windows\x64\runner\Release"
+
+          function Find-VcCrtDir {
+            param([string[]] $SearchRoots)
+
+            foreach ($root in $SearchRoots) {
+              if (-not (Test-Path $root)) { continue }
+
+              $match = Get-ChildItem $root -Recurse -Filter "msvcp140.dll" -ErrorAction SilentlyContinue |
+                Where-Object {
+                  $_.FullName -match "[\\/]x64[\\/]" -and
+                  $_.Directory.Name -like "Microsoft.VC*.CRT"
+                } |
+                Select-Object -First 1
+
+              if ($match) { return $match.Directory }
+            }
+
+            return $null
+          }
+
+          $searchRoots = @()
+          if ($env:VCToolsRedistDir) { $searchRoots += $env:VCToolsRedistDir }
+
           $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
             -latest -property installationPath
-          if (-not $vsPath) {
-            throw "Visual Studio no encontrado en el runner."
+          if ($vsPath) {
+            $searchRoots += (Join-Path $vsPath "VC\Redist")
+            $searchRoots += (Join-Path $vsPath "VC\Redist\MSVC")
           }
 
-          $redistRoot = Join-Path $vsPath "VC\Redist\MSVC"
-          $redistVersion = Get-ChildItem $redistRoot |
-            Sort-Object Name -Descending |
-            Select-Object -First 1
-          if (-not $redistVersion) {
-            throw "No se encontró VC Redist en $redistRoot"
-          }
+          $crtDir = Find-VcCrtDir -SearchRoots $searchRoots
 
-          $crtDir = Get-ChildItem (Join-Path $redistVersion.FullName "x64") -Directory |
-            Where-Object { $_.Name -like "Microsoft.VC*.CRT" } |
-            Select-Object -First 1
           if (-not $crtDir) {
-            throw "No se encontró carpeta Microsoft.VC*.CRT en $($redistVersion.FullName)\x64"
+            Write-Host "Runtime no encontrado en Visual Studio; descargando redistributable oficial..."
+            $redistExe = Join-Path $env:RUNNER_TEMP "vc_redist.x64.exe"
+            $extractDir = Join-Path $env:RUNNER_TEMP "vc_redist_extract"
+            Invoke-WebRequest -Uri "https://aka.ms/vc14/vc_redist.x64.exe" -OutFile $redistExe
+            New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+            & 7z x $redistExe "-o$extractDir" -y | Out-Null
+            $crtDir = Find-VcCrtDir -SearchRoots @($extractDir)
           }
 
-          $releaseDir = "build\windows\x64\runner\Release"
+          if (-not $crtDir) {
+            throw "No se encontraron DLLs del runtime de Visual C++ x64."
+          }
+
           Copy-Item (Join-Path $crtDir.FullName "*.dll") -Destination $releaseDir -Force
           Write-Host "Runtime copiado desde $($crtDir.FullName) a $releaseDir"
 
