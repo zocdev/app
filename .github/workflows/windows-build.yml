@@ -36,7 +36,37 @@ jobs:
       - name: Compilar para Windows
         run: flutter build windows --release
 
-      # 6. Empaqueta el resultado para que puedas descargarlo
+      # 6. Incluye las DLLs del runtime de Visual C++ (MSVCP140, VCRUNTIME140, etc.)
+      #    para que la app funcione en PCs sin el redistributable instalado.
+      - name: Empaquetar runtime de Visual C++
+        shell: pwsh
+        run: |
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -property installationPath
+          if (-not $vsPath) {
+            throw "Visual Studio no encontrado en el runner."
+          }
+
+          $redistRoot = Join-Path $vsPath "VC\Redist\MSVC"
+          $redistVersion = Get-ChildItem $redistRoot |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          if (-not $redistVersion) {
+            throw "No se encontró VC Redist en $redistRoot"
+          }
+
+          $crtDir = Get-ChildItem (Join-Path $redistVersion.FullName "x64") -Directory |
+            Where-Object { $_.Name -like "Microsoft.VC*.CRT" } |
+            Select-Object -First 1
+          if (-not $crtDir) {
+            throw "No se encontró carpeta Microsoft.VC*.CRT en $($redistVersion.FullName)\x64"
+          }
+
+          $releaseDir = "build\windows\x64\runner\Release"
+          Copy-Item (Join-Path $crtDir.FullName "*.dll") -Destination $releaseDir -Force
+          Write-Host "Runtime copiado desde $($crtDir.FullName) a $releaseDir"
+
+      # 7. Empaqueta el resultado para que puedas descargarlo
       - name: Subir ejecutable (Artifact)
         uses: actions/upload-artifact@v4
         with:
