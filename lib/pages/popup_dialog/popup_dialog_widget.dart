@@ -434,13 +434,14 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                   FormListFieldController<String>(null),
                           options: List<String>.from(FFAppState()
                               .taskOptions
-                              .map((e) => e.toString())
+                              .map((e) => TaskOptionStruct.maybeFromMap(e)?.id)
+                              .withoutNulls
                               .toList()),
                           optionLabels: FFAppState()
                               .taskOptions
-                              .map(
-                                  (e) => TaskOptionStruct.maybeFromMap(e)?.name)
+                              .map((e) => TaskOptionStruct.maybeFromMap(e))
                               .withoutNulls
+                              .map((e) => e.name)
                               .toList(),
                           width: 400.0,
                           height: 35.0,
