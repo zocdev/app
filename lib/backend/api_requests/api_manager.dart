@@ -229,6 +229,20 @@ class ApiManager {
   // If your API calls need authentication, populate this field once
   // the user has authenticated. Alter this as needed.
   static String? _accessToken;
+  static String? Function()? _accessTokenGetter;
+  static Future<bool> Function()? _tokenRefresher;
+
+  static void syncAccessToken(String? token) {
+    _accessToken = token;
+  }
+
+  static void configureAuthSession({
+    String? Function()? accessTokenGetter,
+    Future<bool> Function()? tokenRefresher,
+  }) {
+    _accessTokenGetter = accessTokenGetter;
+    _tokenRefresher = tokenRefresher;
+  }
   // You may want to call this if, for example, you make a change to the
   // database and no longer want the cached result of a call that may
   // have changed.
@@ -490,25 +504,92 @@ class ApiManager {
           cache: cache,
           isStreamingApi: isStreamingApi,
         );
-    // Modify for your specific needs if this differs from your API.
-    if (_accessToken != null) {
-      headers[HttpHeaders.authorizationHeader] = 'Bearer $_accessToken';
+    final requestHeaders = Map<String, dynamic>.from(headers);
+    final resolvedToken = _accessToken ?? _accessTokenGetter?.call();
+    if (resolvedToken != null &&
+        resolvedToken.isNotEmpty &&
+        !requestHeaders.containsKey(HttpHeaders.authorizationHeader) &&
+        !requestHeaders.containsKey('Authorization')) {
+      requestHeaders[HttpHeaders.authorizationHeader] = 'Bearer $resolvedToken';
     }
+
     if (!apiUrl.startsWith('http')) {
       apiUrl = 'https://$apiUrl';
     }
 
-    // If we've already made this exact call before and caching is on,
-    // return the cached result.
     if (cache && _apiCache.containsKey(callOptions)) {
       return _apiCache[callOptions]!;
     }
 
-    ApiCallResponse result;
+    ApiCallResponse result = await _executeRequest(
+      callType: callType,
+      apiUrl: apiUrl,
+      headers: requestHeaders,
+      params: params,
+      body: body,
+      bodyType: bodyType,
+      returnBody: returnBody,
+      encodeBodyUtf8: encodeBodyUtf8,
+      decodeUtf8: decodeUtf8,
+      alwaysAllowBody: alwaysAllowBody,
+      isStreamingApi: isStreamingApi,
+      client: client,
+    );
+
+    if (result.statusCode == 401 &&
+        _tokenRefresher != null &&
+        !apiUrl.contains('/auth/login') &&
+        !apiUrl.contains('/auth/refresh')) {
+      final refreshed = await _tokenRefresher!.call();
+      if (refreshed) {
+        final retryHeaders = Map<String, dynamic>.from(headers);
+        final retryToken = _accessToken ?? _accessTokenGetter?.call();
+        if (retryToken != null && retryToken.isNotEmpty) {
+          retryHeaders[HttpHeaders.authorizationHeader] = 'Bearer $retryToken';
+        }
+
+        result = await _executeRequest(
+          callType: callType,
+          apiUrl: apiUrl,
+          headers: retryHeaders,
+          params: params,
+          body: body,
+          bodyType: bodyType,
+          returnBody: returnBody,
+          encodeBodyUtf8: encodeBodyUtf8,
+          decodeUtf8: decodeUtf8,
+          alwaysAllowBody: alwaysAllowBody,
+          isStreamingApi: isStreamingApi,
+          client: client,
+        );
+      }
+    }
+
+    if (cache) {
+      _apiCache[callOptions] = result;
+    }
+
+    return result;
+  }
+
+  static Future<ApiCallResponse> _executeRequest({
+    required ApiCallType callType,
+    required String apiUrl,
+    required Map<String, dynamic> headers,
+    required Map<String, dynamic> params,
+    String? body,
+    BodyType? bodyType,
+    required bool returnBody,
+    required bool encodeBodyUtf8,
+    required bool decodeUtf8,
+    required bool alwaysAllowBody,
+    required bool isStreamingApi,
+    http.Client? client,
+  }) async {
     try {
       switch (callType) {
         case ApiCallType.GET:
-          result = await urlRequest(
+          return await urlRequest(
             callType,
             apiUrl,
             headers,
@@ -518,9 +599,8 @@ class ApiManager {
             isStreamingApi,
             client: client,
           );
-          break;
         case ApiCallType.DELETE:
-          result = alwaysAllowBody
+          return alwaysAllowBody
               ? await requestWithBody(
                   callType,
                   apiUrl,
@@ -545,11 +625,10 @@ class ApiManager {
                   isStreamingApi,
                   client: client,
                 );
-          break;
         case ApiCallType.POST:
         case ApiCallType.PUT:
         case ApiCallType.PATCH:
-          result = await requestWithBody(
+          return await requestWithBody(
             callType,
             apiUrl,
             headers,
@@ -563,17 +642,9 @@ class ApiManager {
             isStreamingApi,
             client: client,
           );
-          break;
-      }
-
-      // If caching is on, cache the result (if present).
-      if (cache) {
-        _apiCache[callOptions] = result;
       }
     } catch (e) {
-      result = ApiCallResponse(null, {}, -1, exception: e);
+      return ApiCallResponse(null, {}, -1, exception: e);
     }
-
-    return result;
   }
 }

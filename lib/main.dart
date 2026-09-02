@@ -8,9 +8,11 @@ import 'package:window_manager/window_manager.dart';
 import 'package:system_tray/system_tray.dart';
 import 'dart:io' show Platform, exit;
 
+import 'auth/auth_session.dart';
 import 'auth/custom_auth/auth_util.dart';
 import 'auth/custom_auth/custom_auth_user_provider.dart';
 
+import '/backend/api_requests/api_manager.dart';
 import '/backend/supabase/supabase.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/internationalization.dart';
@@ -46,6 +48,12 @@ void main() async {
   try {
     await authManager.initialize();
     await appState.initializePersistedState();
+
+    ApiManager.configureAuthSession(
+      accessTokenGetter: () => authManager.authenticationToken,
+      tokenRefresher: AuthSession.refreshAccessToken,
+    );
+    ApiManager.syncAccessToken(authManager.authenticationToken);
   } catch (e, stack) {
     if (kDebugMode) {
       print('Startup initialization error: $e');
@@ -210,10 +218,25 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
     Future.microtask(() async {
       try {
-        await authManager.signOut();
-        _appStateNotifier.update(Zoc1AuthUser(loggedIn: false));
+        final hasStoredSession = authManager.authenticationToken != null &&
+            authManager.authenticationToken!.isNotEmpty;
+
+        if (hasStoredSession) {
+          final refreshed = await AuthSession.refreshAccessToken();
+          if (!refreshed && authManager.tokenExpiration != null &&
+              authManager.tokenExpiration!.isBefore(DateTime.now())) {
+            await authManager.signOut();
+          }
+        }
+
+        final user = zoc1AuthUserSubject.value;
+        _appStateNotifier.update(user);
         _appStateNotifier.stopShowingSplashImage();
-        _router.go('/login');
+        ApiManager.syncAccessToken(authManager.authenticationToken);
+
+        if (!user.loggedIn) {
+          _router.go('/login');
+        }
       } catch (e) {
         if (kDebugMode) {
           print('DEBUG: Error en inicialización: $e');

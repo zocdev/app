@@ -110,14 +110,38 @@ class CustomAuthManager {
       return;
     }
 
-    final authTokenExists = authenticationToken != null;
-    final tokenExpired =
-        tokenExpiration != null && tokenExpiration!.isBefore(DateTime.now());
+    final authTokenExists =
+        authenticationToken != null && authenticationToken!.isNotEmpty;
+    final tokenExpired = tokenExpiration != null &&
+        tokenExpiration!.isBefore(DateTime.now());
     final updatedUser = Zoc1AuthUser(
       loggedIn: authTokenExists && !tokenExpired,
       uid: uid,
     );
     zoc1AuthUserSubject.add(updatedUser);
+  }
+
+  Future<bool> ensureValidSession() async {
+    if (authenticationToken == null || authenticationToken!.isEmpty) {
+      zoc1AuthUserSubject.add(Zoc1AuthUser(loggedIn: false, uid: uid));
+      return false;
+    }
+
+    final refreshThreshold = DateTime.now().add(const Duration(minutes: 1));
+    final isExpired = tokenExpiration != null &&
+        tokenExpiration!.isBefore(refreshThreshold);
+
+    if (!isExpired) {
+      zoc1AuthUserSubject.add(Zoc1AuthUser(loggedIn: true, uid: uid));
+      return true;
+    }
+
+    if (refreshToken == null || refreshToken!.isEmpty) {
+      await signOut();
+      return false;
+    }
+
+    return false;
   }
 
   Future<void> persistAuthData() async {

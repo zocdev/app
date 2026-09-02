@@ -1,5 +1,6 @@
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
+import '/backend/api_requests/api_manager.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
@@ -490,6 +491,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                 }
                                 if ((loginResult?.succeeded ?? true)) {
                                   GoRouter.of(context).prepareAuthEvent();
+                                  final expiresIn = LoginCall.expiresIn(
+                                    loginResult?.jsonBody ?? '',
+                                  );
+                                  final tokenExpiration = expiresIn != null
+                                      ? DateTime.now().add(
+                                          Duration(seconds: expiresIn),
+                                        )
+                                      : null;
                                   await authManager.signIn(
                                     authenticationToken: getJsonField(
                                       (loginResult?.jsonBody ?? ''),
@@ -499,10 +508,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                       (loginResult?.jsonBody ?? ''),
                                       r'''$.refresh_token''',
                                     ).toString(),
+                                    tokenExpiration: tokenExpiration,
                                     authUid: getJsonField(
                                       (loginResult?.jsonBody ?? ''),
                                       r'''$.user.id''',
                                     ).toString(),
+                                  );
+                                  ApiManager.syncAccessToken(
+                                    authManager.authenticationToken,
                                   );
                                   FFAppState().UserData =
                                       (loginResult?.jsonBody ?? '');
