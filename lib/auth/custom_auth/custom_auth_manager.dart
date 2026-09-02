@@ -85,7 +85,15 @@ class CustomAuthManager {
   }
 
   Future initialize() async {
-    await _storage.initialize();
+    try {
+      await _storage.initialize();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error initializing auth storage: $e');
+      }
+      zoc1AuthUserSubject.add(Zoc1AuthUser(loggedIn: false));
+      return;
+    }
 
     try {
       authenticationToken = _storage.getString(_kAuthTokenKey);

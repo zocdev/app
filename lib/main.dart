@@ -21,7 +21,9 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   GoRouter.optionURLReflectsImperativeAPIs = true;
-  usePathUrlStrategy();
+  if (kIsWeb) {
+    usePathUrlStrategy();
+  }
 
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
@@ -39,14 +41,17 @@ void main() async {
     return true;
   };
 
-  await SupaFlow.initialize();
-
-  //await SQLiteManager.initialize();
-
-  await authManager.initialize();
-
   final appState = FFAppState();
-  await appState.initializePersistedState();
+
+  try {
+    await authManager.initialize();
+    await appState.initializePersistedState();
+  } catch (e, stack) {
+    if (kDebugMode) {
+      print('Startup initialization error: $e');
+      print('StackTrace: $stack');
+    }
+  }
 
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
     try {
@@ -190,30 +195,34 @@ class _MyAppState extends State<MyApp> with WindowListener {
     _appStateNotifier = AppStateNotifier.instance;
     _router = createRouter(_appStateNotifier, navigatorKey: navigatorKey);
 
-    // Forzar cierre de sesión y navegar al login
+    final initialUser = zoc1AuthUserSubject.value;
+    _appStateNotifier.update(initialUser);
+    _appStateNotifier.stopShowingSplashImage();
+
+    userStream = zoc1AuthUserStream()
+      ..listen((user) {
+        if (kDebugMode) {
+          print(
+              'DEBUG: User stream updated - loggedIn: ${user.loggedIn}, uid: ${user.uid}');
+        }
+        _appStateNotifier.update(user);
+      });
+
     Future.microtask(() async {
       try {
         await authManager.signOut();
         _appStateNotifier.update(Zoc1AuthUser(loggedIn: false));
         _appStateNotifier.stopShowingSplashImage();
-
-        // Esperar a que el router esté listo
-        await Future.delayed(Duration(milliseconds: 200));
-
-        // Navegar directamente a la ruta del login
-        print('DEBUG: Navegando a /login');
         _router.go('/login');
       } catch (e) {
-        print('DEBUG: Error en inicialización: $e');
+        if (kDebugMode) {
+          print('DEBUG: Error en inicialización: $e');
+        }
+        _appStateNotifier.update(Zoc1AuthUser(loggedIn: false));
+        _appStateNotifier.stopShowingSplashImage();
+        _router.go('/login');
       }
     });
-
-    userStream = zoc1AuthUserStream()
-      ..listen((user) {
-        print(
-            'DEBUG: User stream updated - loggedIn: ${user.loggedIn}, uid: ${user.uid}');
-        _appStateNotifier.update(user);
-      });
 
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
       windowManager.addListener(this);
