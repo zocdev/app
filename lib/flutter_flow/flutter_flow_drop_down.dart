@@ -124,6 +124,11 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
         const EdgeInsetsDirectional.symmetric(horizontal: double.infinity),
       );
 
+  EdgeInsetsGeometry get _menuItemPadding => const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 2,
+      );
+
   late void Function() _listener;
   final TextEditingController _textEditingController = TextEditingController();
 
@@ -222,7 +227,7 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
             key: widget.optionsHasValueKeys ? _getItemKey(option) : null,
             value: option,
             child: Padding(
-              padding: _useDropdown2() ? horizontalMargin : EdgeInsets.zero,
+              padding: _useDropdown2() ? _menuItemPadding : EdgeInsets.zero,
               child: Text(optionLabels[option] ?? '', style: widget.textStyle),
             )),
       )
@@ -253,14 +258,14 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
                   },
                   child: Container(
                     height: double.infinity,
-                    padding: horizontalMargin,
+                    padding: _menuItemPadding,
                     child: Row(
                       children: [
                         if (isSelected)
-                          const Icon(Icons.check_box_outlined)
+                          const Icon(Icons.check_box_outlined, size: 20)
                         else
-                          const Icon(Icons.check_box_outline_blank),
-                        const SizedBox(width: 16),
+                          const Icon(Icons.check_box_outline_blank, size: 20),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             optionLabels[item]!,
@@ -295,6 +300,7 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
       menuItemStyleData: MenuItemStyleData(
         overlayColor: overlayColor,
         padding: EdgeInsets.zero,
+        height: 36,
       ),
       dropdownStyleData: DropdownStyleData(
         elevation: widget.elevation.toInt(),
@@ -330,14 +336,14 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
       dropdownSearchData: widget.isSearchable
           ? DropdownSearchData<T>(
               searchController: _textEditingController,
-              searchInnerWidgetHeight: 50,
+              searchInnerWidgetHeight: 36,
               searchInnerWidget: Container(
-                height: 50,
+                height: 36,
                 padding: const EdgeInsets.only(
-                  top: 8,
-                  bottom: 4,
-                  right: 8,
-                  left: 8,
+                  top: 4,
+                  bottom: 2,
+                  right: 6,
+                  left: 6,
                 ),
                 child: TextFormField(
                   expands: true,
@@ -348,8 +354,8 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
                   decoration: InputDecoration(
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
                     hintText: widget.searchHintText,
                     hintStyle: widget.searchHintTextStyle,
