@@ -1,0 +1,45 @@
+name: Build Windows x64
+
+# Este script se ejecutará cuando hagas push a la rama principal
+# o cuando lo lances manualmente desde la pestaña "Actions" de GitHub.
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Usa un servidor de GitHub con Windows x64
+    runs-on: windows-latest
+
+    steps:
+      # 1. Descarga el código de tu repositorio en la máquina virtual
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      # 2. Instala la última versión estable de Flutter
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true # Acelera futuras compilaciones
+
+      # 3. Descarga las dependencias (packages) de tu proyecto
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      # 4. Asegura que el soporte para escritorio esté activado
+      - name: Activar soporte para Windows
+        run: flutter config --enable-windows-desktop
+
+      # 5. Compila la aplicación en modo release (x64 por defecto en este runner)
+      - name: Compilar para Windows
+        run: flutter build windows --release
+
+      # 6. Empaqueta el resultado para que puedas descargarlo
+      - name: Subir ejecutable (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-windows-x64
+          # Esta es la ruta donde Flutter guarda el ejecutable de Windows
+          path: build/windows/x64/runner/Release/
