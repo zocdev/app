@@ -231,6 +231,7 @@ class ApiManager {
   static String? _accessToken;
   static String? Function()? _accessTokenGetter;
   static Future<bool> Function()? _tokenRefresher;
+  static Future<void> Function()? _onUnauthorized;
 
   static void syncAccessToken(String? token) {
     _accessToken = token;
@@ -239,9 +240,11 @@ class ApiManager {
   static void configureAuthSession({
     String? Function()? accessTokenGetter,
     Future<bool> Function()? tokenRefresher,
+    Future<void> Function()? onUnauthorized,
   }) {
     _accessTokenGetter = accessTokenGetter;
     _tokenRefresher = tokenRefresher;
+    _onUnauthorized = onUnauthorized;
   }
   // You may want to call this if, for example, you make a change to the
   // database and no longer want the cached result of a call that may
@@ -562,6 +565,8 @@ class ApiManager {
           isStreamingApi: isStreamingApi,
           client: client,
         );
+      } else if (_onUnauthorized != null) {
+        await _onUnauthorized!.call();
       }
     }
 

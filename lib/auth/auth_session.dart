@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '/auth/custom_auth/auth_util.dart';
@@ -7,20 +8,28 @@ import '/backend/api_requests/api_config.dart';
 import '/backend/api_requests/api_manager.dart';
 
 class AuthSession {
-  static bool _isRefreshing = false;
+  static Future<bool>? _refreshFuture;
 
   static Future<bool> refreshAccessToken() async {
-    if (_isRefreshing) {
+    if (_refreshFuture != null) {
+      return _refreshFuture!;
+    }
+
+    _refreshFuture = _performRefresh();
+    try {
+      return await _refreshFuture!;
+    } finally {
+      _refreshFuture = null;
+    }
+  }
+
+  static Future<bool> _performRefresh() async {
+    final refreshToken = currentAuthRefreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) {
       return false;
     }
 
-    _isRefreshing = true;
     try {
-      final refreshToken = currentAuthRefreshToken;
-      if (refreshToken == null || refreshToken.isEmpty) {
-        return false;
-      }
-
       final response = await http.post(
         Uri.parse('${getBaseApiUrl()}/api/v1/auth/refresh'),
         headers: const {
@@ -31,6 +40,11 @@ class AuthSession {
       );
 
       if (response.statusCode != 200) {
+        if (kDebugMode) {
+          print(
+            'AuthSession refresh failed: status=${response.statusCode} body=${response.body}',
+          );
+        }
         return false;
       }
 
@@ -67,8 +81,11 @@ class AuthSession {
 
       ApiManager.syncAccessToken(accessToken);
       return true;
-    } finally {
-      _isRefreshing = false;
+    } catch (error) {
+      if (kDebugMode) {
+        print('AuthSession refresh error: $error');
+      }
+      return false;
     }
   }
 
@@ -87,7 +104,7 @@ class AuthSession {
       return currentAuthenticationToken;
     }
 
-    return token;
+    return null;
   }
 
   static Future<void> logout({bool callBackend = true}) async {
@@ -108,5 +125,12 @@ class AuthSession {
 
     await authManager.signOut();
     ApiManager.syncAccessToken(null);
+  }
+
+  static Future<void> handleUnauthorized() async {
+    final refreshed = await refreshAccessToken();
+    if (!refreshed) {
+      await logout(callBackend: false);
+    }
   }
 }

@@ -52,6 +52,7 @@ void main() async {
     ApiManager.configureAuthSession(
       accessTokenGetter: () => authManager.authenticationToken,
       tokenRefresher: AuthSession.refreshAccessToken,
+      onUnauthorized: AuthSession.handleUnauthorized,
     );
     ApiManager.syncAccessToken(authManager.authenticationToken);
   } catch (e, stack) {
@@ -223,9 +224,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
         if (hasStoredSession) {
           final refreshed = await AuthSession.refreshAccessToken();
-          if (!refreshed && authManager.tokenExpiration != null &&
-              authManager.tokenExpiration!.isBefore(DateTime.now())) {
+          if (!refreshed) {
             await authManager.signOut();
+            ApiManager.syncAccessToken(null);
           }
         }
 
