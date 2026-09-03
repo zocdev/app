@@ -4,7 +4,7 @@ import 'dart:js_interop';
 
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
-import 'package:zoc1/utils/compress_screenshot.dart';
+import 'package:zoc/utils/compress_screenshot.dart';
 
 Future<String?> captureScreenshotBase64() async {
   try {

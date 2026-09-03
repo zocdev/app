@@ -163,7 +163,7 @@ Start-Process -FilePath \$exe
     Directory workDir,
   ) async {
     final exePath = Platform.resolvedExecutable;
-    // .../zoc1.app/Contents/MacOS/zoc1
+    // .../zoc.app/Contents/MacOS/zoc
     final appBundle = File(exePath).parent.parent.parent;
     final stagedApp = _findMacAppBundle(extractDir);
     if (stagedApp == null) {
@@ -203,7 +203,7 @@ open "\$DEST"
   }
 
   static Directory? _findWindowsReleaseDir(Directory root) {
-    final exe = _findFile(root, 'zoc1.exe');
+    final exe = _findFile(root, 'zoc.exe');
     if (exe != null) return exe.parent;
     return null;
   }

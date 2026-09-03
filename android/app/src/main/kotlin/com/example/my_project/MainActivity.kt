@@ -1,4 +1,4 @@
-package com.mycompany.zoc1
+package com.mycompany.zoc
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Zoc1" "\0"
+            VALUE "CompanyName", "zoc" "\0"
             VALUE "FileDescription", "A new Flutter project." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Zoc1" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 Zoc1. All rights reserved." "\0"
-            VALUE "OriginalFilename", "zoc1.exe" "\0"
-            VALUE "ProductName", "Zoc1" "\0"
+            VALUE "InternalName", "zoc" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 zoc. All rights reserved." "\0"
+            VALUE "OriginalFilename", "zoc.exe" "\0"
+            VALUE "ProductName", "zoc" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

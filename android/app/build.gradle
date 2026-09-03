@@ -29,9 +29,9 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.mycompany.zoc1"
+    namespace "com.mycompany.zoc"
     compileSdkVersion 35
-    
+
 
     compileOptions {
         coreLibraryDesugaringEnabled true
@@ -54,7 +54,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.mycompany.zoc1"
+        applicationId "com.mycompany.zoc"
         minSdkVersion 23
         targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()

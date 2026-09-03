@@ -322,7 +322,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Zoc1',
+      title: 'zoc',
       scrollBehavior: MyAppScrollBehavior(),
       localizationsDelegates: const [
         FFLocalizationsDelegate(),

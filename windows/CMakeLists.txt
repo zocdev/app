@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-project(zoc1 LANGUAGES CXX)
+project(zoc LANGUAGES CXX)
 
-set(BINARY_NAME "zoc1")
+set(BINARY_NAME "zoc")
 
 cmake_policy(SET CMP0063 NEW)
 

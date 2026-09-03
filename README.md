@@ -169,5 +169,5 @@ Lint rules: `analysis_options.yaml` (`flutter_lints`).
 ## Repository
 
 - GitHub: [zocdev/app](https://github.com/zocdev/app)
-- Package name in `pubspec.yaml`: `zoc1`
+- Package name in `pubspec.yaml`: `zoc`
 - App display name: **Zoc**

@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:zoc1/auth/custom_auth/custom_auth_manager.dart';
-import 'package:zoc1/auth/custom_auth/custom_auth_user_provider.dart';
+import 'package:zoc/auth/custom_auth/custom_auth_manager.dart';
+import 'package:zoc/auth/custom_auth/custom_auth_user_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

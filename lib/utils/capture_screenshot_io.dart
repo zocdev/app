@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:screen_capturer/screen_capturer.dart';
-import 'package:zoc1/utils/compress_screenshot.dart';
+import 'package:zoc/utils/compress_screenshot.dart';
 
 Future<String?> captureScreenshotBase64() async {
   try {

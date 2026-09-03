@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = zoc1
+PRODUCT_NAME = zoc
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.mycompany.zoc1
+PRODUCT_BUNDLE_IDENTIFIER = com.mycompany.zoc
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.mycompany. All rights reserved.
