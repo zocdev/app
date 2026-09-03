@@ -74,6 +74,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     }
 
     FFAppState().isPopupVisible = true;
+    FFAppState().taskOptions = [];
 
     // On component load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
@@ -207,6 +208,12 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                       onChanged: (val) async {
                         safeSetState(() => _model.clientDropDownValue = val);
                         _model.selectedClient = _model.clientDropDownValue;
+                        _model.dropdownprojetosValue = null;
+                        _model.selectedProjects = null;
+                        _model.dropdownprojetosValueController?.value = null;
+                        _model.dropdownatividadesValue = null;
+                        _model.dropdownatividadesValueController?.value = null;
+                        FFAppState().taskOptions = [];
                         safeSetState(() {});
                       },
                       width: 400.0,
@@ -295,9 +302,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                           EdgeInsetsDirectional.fromSTEB(0.0, 15.0, 0.0, 0.0),
                       child: FlutterFlowDropDown<String>(
                         controller: _model.dropdownprojetosValueController ??=
-                            FormFieldController<String>(
-                          _model.dropdownprojetosValue ??= '3',
-                        ),
+                            FormFieldController<String>(null),
                         options: List<String>.from(FFAppState()
                             .projectOptions
                             .where((e) =>
@@ -322,6 +327,10 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                               () => _model.dropdownprojetosValue = val);
                           _model.selectedProjects =
                               _model.dropdownprojetosValue;
+                          _model.dropdownatividadesValue = null;
+                          _model.dropdownatividadesValueController?.value =
+                              null;
+                          FFAppState().taskOptions = [];
                           safeSetState(() {});
                           _model.activities =
                               await GetAtivitiesByProjectCall.call(
@@ -422,7 +431,9 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                         isMultiSelect: false,
                       ),
                     ),
-                  if ((FFAppState().taskOptions.isNotEmpty) == true)
+                  if (_model.selectedProjects != null &&
+                      _model.selectedProjects!.isNotEmpty &&
+                      FFAppState().taskOptions.isNotEmpty)
                     Align(
                       alignment: AlignmentDirectional(0.0, 0.0),
                       child: Padding(
