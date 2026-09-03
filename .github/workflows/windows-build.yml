@@ -28,7 +28,12 @@ jobs:
         run: flutter config --enable-windows-desktop
 
       - name: Compilar para Windows
-        run: flutter build windows --release
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $version = if ($tag) { $tag.TrimStart('v') } else { "1.5.9" }
+          Write-Host "Compiling Windows release with version: $version"
+          flutter build windows --release --build-name=$version
 
       - name: Empaquetar runtime de Visual C++
         shell: pwsh

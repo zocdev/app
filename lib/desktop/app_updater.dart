@@ -51,7 +51,15 @@ class AppUpdater {
       if (downloadUrl == null || downloadUrl.isEmpty) return null;
 
       final info = await PackageInfo.fromPlatform();
-      if (!_isNewer(remoteVersion, info.version)) return null;
+      final localVersion = info.version.trim();
+      if (kDebugMode) {
+        print(
+          'AppUpdater: local="$localVersion" (build "${info.buildNumber}"), remote="$remoteVersion"',
+        );
+      }
+      if (localVersion.isEmpty || !_isNewer(remoteVersion, localVersion)) {
+        return null;
+      }
 
       return UpdateInfo(
         version: remoteVersion,
@@ -124,19 +132,42 @@ class AppUpdater {
     final scriptPath =
         '${workDir.path}${Platform.pathSeparator}apply_update.ps1';
     final targetPid = pid;
+    final logPath =
+        '${workDir.path}${Platform.pathSeparator}update.log';
     final script = '''
 \$ErrorActionPreference = "Stop"
 \$targetPid = $targetPid
 \$source = "${_ps(staged.path)}"
 \$dest = "${_ps(installDir)}"
 \$exe = "${_ps(exePath)}"
+\$logFile = "${_ps(logPath)}"
 
+function Write-Log(\$msg) {
+  "[\$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] \$msg" | Out-File -FilePath \$logFile -Append -Encoding utf8
+}
+
+Write-Log "Waiting for process \$targetPid to terminate..."
 while (Get-Process -Id \$targetPid -ErrorAction SilentlyContinue) {
   Start-Sleep -Milliseconds 400
 }
 Start-Sleep -Seconds 1
+Write-Log "Process terminated. Copying files from \$source to \$dest..."
 
-Copy-Item -Path (Join-Path \$source "*") -Destination \$dest -Recurse -Force
+\$retries = 10
+while (\$retries -gt 0) {
+  try {
+    Copy-Item -Path (Join-Path \$source "*") -Destination \$dest -Recurse -Force -ErrorAction Stop
+    Write-Log "Files copied successfully."
+    break
+  } catch {
+    \$retries--
+    Write-Log "Copy failed: \$_ . Retries left: \$retries"
+    if (\$retries -eq 0) { throw \$_ }
+    Start-Sleep -Seconds 1
+  }
+}
+
+Write-Log "Starting process \$exe..."
 Start-Process -FilePath \$exe
 ''';
     await File(scriptPath).writeAsString(script);
@@ -234,6 +265,9 @@ open "\$DEST"
 
   static String _ps(String path) => path.replaceAll('"', '`"');
 
+  @visibleForTesting
+  static bool isNewer(String remote, String local) => _isNewer(remote, local);
+
   /// Compares dotted versions; build number (+N) is ignored.
   static bool _isNewer(String remote, String local) {
     final r = _parseVersion(remote);
@@ -246,11 +280,15 @@ open "\$DEST"
   }
 
   static List<int> _parseVersion(String raw) {
-    final core = raw.split('+').first.replaceFirst(RegExp(r'^v'), '');
+    var core = raw.trim();
+    if (core.toLowerCase().startsWith('v')) {
+      core = core.substring(1).trim();
+    }
+    core = core.split('+').first.split('-').first.trim();
     final parts = core.split('.');
     return List<int>.generate(3, (i) {
       if (i >= parts.length) return 0;
-      return int.tryParse(parts[i]) ?? 0;
+      return int.tryParse(parts[i].trim()) ?? 0;
     });
   }
 }
