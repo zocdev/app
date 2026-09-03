@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -108,6 +111,7 @@ jobs:
       - name: Adjuntar archivos al GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.release.tag_name }}
           files: |
             Zoc-windows-x64.zip
             latest.json
