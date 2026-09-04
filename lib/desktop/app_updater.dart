@@ -129,13 +129,20 @@ class AppUpdater {
       throw Exception('Windows release folder not found in zip');
     }
 
-    final scriptPath =
+    final psScriptPath =
         '${workDir.path}${Platform.pathSeparator}apply_update.ps1';
+    // Relay .bat breaks the Windows Job Object so PowerShell survives
+    // after the Flutter parent process exits.
+    final batRelayPath =
+        '${workDir.path}${Platform.pathSeparator}launch_updater.bat';
     final targetPid = pid;
     final logPath =
         '${workDir.path}${Platform.pathSeparator}update.log';
-    final script = '''
-\$ErrorActionPreference = "Stop"
+
+    // NOTE: Do NOT use $ErrorActionPreference = "Stop" at the top level —
+    // it causes the script to terminate silently on any transient error
+    // (e.g. antivirus file lock). We handle errors per-block instead.
+    final psScript = '''
 \$targetPid = $targetPid
 \$source = "${_ps(staged.path)}"
 \$dest = "${_ps(installDir)}"
@@ -143,65 +150,92 @@ class AppUpdater {
 \$logFile = "${_ps(logPath)}"
 
 function Write-Log(\$msg) {
-  "[\$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] \$msg" | Out-File -FilePath \$logFile -Append -Encoding utf8
+  try {
+    "[\$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] \$msg" | `
+      Out-File -FilePath \$logFile -Append -Encoding utf8
+  } catch {}
 }
 
-Write-Log "Waiting for process \$targetPid to terminate..."
+Write-Log "Updater started. Waiting for PID \$targetPid to exit..."
+\$waited = 0
 while (Get-Process -Id \$targetPid -ErrorAction SilentlyContinue) {
   Start-Sleep -Milliseconds 400
-}
-Start-Sleep -Seconds 1
-Write-Log "Process terminated. Copying files from \$source to \$dest..."
-
-\$retries = 10
-while (\$retries -gt 0) {
-  try {
-    Copy-Item -Path (Join-Path \$source "*") -Destination \$dest -Recurse -Force -ErrorAction Stop
-    Write-Log "Files copied successfully."
-    break
-  } catch {
-    \$retries--
-    Write-Log "Copy failed: \$_ . Retries left: \$retries"
-    if (\$retries -eq 0) { throw \$_ }
-    Start-Sleep -Seconds 1
+  \$waited += 400
+  if (\$waited -gt 60000) {
+    Write-Log "Timed out waiting for process to exit."
+    exit 1
   }
 }
+Start-Sleep -Seconds 2
+Write-Log "Process exited. Beginning file copy from \$source to \$dest"
 
-Write-Log "Starting process \$exe in working directory \$dest..."
-\$started = \$false
+# Use robocopy — purpose-built for reliable Windows file copying with retries.
+# /E  = include subdirectories (even empty)
+# /PURGE = delete files in dest that don't exist in source
+# /R:10 = retry 10 times per file
+# /W:2  = wait 2 seconds between retries
+# /NFL /NDL /NJH /NJS /NC /NS = suppress verbose output
+\$roboResult = robocopy "\$source" "\$dest" /E /PURGE /R:10 /W:2 /NFL /NDL /NJH /NJS /NC /NS
+\$exitCode = \$LASTEXITCODE
+
+# Robocopy exit codes < 8 are success (0-7 = OK, 8+ = error)
+if (\$exitCode -ge 8) {
+  Write-Log "Robocopy failed with exit code \$exitCode. Trying Copy-Item fallback..."
+  \$retries = 5
+  while (\$retries -gt 0) {
+    try {
+      Copy-Item -Path (Join-Path \$source "*") `
+        -Destination \$dest -Recurse -Force -ErrorAction Stop
+      Write-Log "Copy-Item fallback succeeded."
+      \$exitCode = 0
+      break
+    } catch {
+      \$retries--
+      Write-Log "Copy-Item attempt failed: \$_. Retries left: \$retries"
+      if (\$retries -eq 0) {
+        Write-Log "All copy attempts failed. Aborting."
+        exit 1
+      }
+      Start-Sleep -Seconds 2
+    }
+  }
+} else {
+  Write-Log "Robocopy completed (code \$exitCode)."
+}
+
+Write-Log "Launching updated app: \$exe"
 try {
-  \$proc = Start-Process -FilePath \$exe -WorkingDirectory \$dest -WindowStyle Normal -PassThru
-  if (\$proc) {
-    Write-Log "Process started successfully with PID \$(\$proc.Id)."
-    \$started = \$true
-  }
+  \$proc = Start-Process -FilePath \$exe `
+    -WorkingDirectory \$dest -WindowStyle Normal -PassThru
+  Write-Log "App launched with PID \$(\$proc.Id)."
 } catch {
-  Write-Log "Start-Process failed: \$_"
-}
-
-if (-not \$started) {
-  Write-Log "Attempting fallback launch via explorer.exe..."
+  Write-Log "Direct launch failed: \$_. Trying via explorer..."
   try {
-    Start-Process -FilePath "explorer.exe" -ArgumentList "`"\$exe`""
-    Write-Log "Fallback launch via explorer.exe executed."
+    Start-Process "explorer.exe" -ArgumentList "`"\$exe`""
+    Write-Log "Launched via explorer.exe."
   } catch {
-    Write-Log "Fallback launch failed: \$_"
+    Write-Log "Explorer fallback also failed: \$_"
   }
 }
+Write-Log "Updater finished."
 ''';
-    await File(scriptPath).writeAsString(script);
 
+    // The relay batch file uses "start /b" which creates the PowerShell
+    // process in a new process group, detached from the Flutter job object.
+    // Without this, Windows kills PowerShell when the Flutter parent exits.
+    final batRelay = '''
+@echo off
+start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "${psScriptPath.replaceAll('/', '\\')}"
+exit /b 0
+''';
+    await File(psScriptPath).writeAsString(psScript);
+    await File(batRelayPath).writeAsString(batRelay);
+
+    // Launch via cmd.exe — this creates the PowerShell process outside the
+    // Flutter job object so it won't be killed when Flutter exits.
     await Process.start(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-WindowStyle',
-        'Hidden',
-        '-File',
-        scriptPath,
-      ],
+      'cmd.exe',
+      ['/c', batRelayPath],
       workingDirectory: workDir.path,
       mode: ProcessStartMode.detached,
     );
