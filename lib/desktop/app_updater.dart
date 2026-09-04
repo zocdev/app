@@ -167,8 +167,27 @@ while (\$retries -gt 0) {
   }
 }
 
-Write-Log "Starting process \$exe..."
-Start-Process -FilePath \$exe
+Write-Log "Starting process \$exe in working directory \$dest..."
+\$started = \$false
+try {
+  \$proc = Start-Process -FilePath \$exe -WorkingDirectory \$dest -WindowStyle Normal -PassThru
+  if (\$proc) {
+    Write-Log "Process started successfully with PID \$(\$proc.Id)."
+    \$started = \$true
+  }
+} catch {
+  Write-Log "Start-Process failed: \$_"
+}
+
+if (-not \$started) {
+  Write-Log "Attempting fallback launch via explorer.exe..."
+  try {
+    Start-Process -FilePath "explorer.exe" -ArgumentList "`"\$exe`""
+    Write-Log "Fallback launch via explorer.exe executed."
+  } catch {
+    Write-Log "Fallback launch failed: \$_"
+  }
+}
 ''';
     await File(scriptPath).writeAsString(script);
 
@@ -183,6 +202,7 @@ Start-Process -FilePath \$exe
         '-File',
         scriptPath,
       ],
+      workingDirectory: workDir.path,
       mode: ProcessStartMode.detached,
     );
 
@@ -219,7 +239,8 @@ sleep 1
 rm -rf "\$DEST"
 cp -R "\$SOURCE" "\$DEST"
 chmod -R u+w "\$DEST" || true
-open "\$DEST"
+xattr -cr "\$DEST" 2>/dev/null || true
+open -n "\$DEST" || open "\$DEST"
 ''';
     await File(scriptPath).writeAsString(script);
     await Process.run('chmod', ['+x', scriptPath]);
