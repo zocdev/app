@@ -88,6 +88,22 @@ jobs:
           Copy-Item (Join-Path $crtDir.FullName "*.dll") -Destination $releaseDir -Force
           Write-Host "Runtime copiado desde $($crtDir.FullName) a $releaseDir"
 
+      - name: Instalar Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compilar installer con Inno Setup
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $version = if ($tag) { $tag.TrimStart('v') } else { "1.5.9" }
+          $sourceDir = "build\windows\x64\runner\Release"
+          Write-Host "Building installer for version: $version"
+          & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" `
+            "/DMyAppVersion=$version" `
+            "/DSourceDir=$sourceDir" `
+            "/O." `
+            "installers\installer.iss"
+
       - name: Subir ejecutable (Artifact)
         uses: actions/upload-artifact@v4
         with:
@@ -119,6 +135,7 @@ jobs:
           tag_name: ${{ github.event.release.tag_name }}
           files: |
             Zoc-windows-x64.zip
+            zoc-installer-*.exe
             latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
