@@ -125,6 +125,7 @@ class GetProjectsCall {
       },
       params: {
         'org_id': orgId,
+        'status': '1',
       },
       returnBody: true,
       encodeBodyUtf8: false,
@@ -147,7 +148,9 @@ class GetClientsCall {
       headers: {
         'Authorization': 'Bearer $token',
       },
-      params: {},
+      params: {
+        'status': '1',
+      },
       returnBody: true,
       encodeBodyUtf8: false,
       decodeUtf8: true,
