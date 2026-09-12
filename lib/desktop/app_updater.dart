@@ -203,18 +203,23 @@ if (\$exitCode -ge 8) {
   Write-Log "Robocopy completed (code \$exitCode)."
 }
 
-Write-Log "Launching updated app: \$exe"
-try {
-  \$proc = Start-Process -FilePath \$exe `
-    -WorkingDirectory \$dest -WindowStyle Normal -PassThru
-  Write-Log "App launched with PID \$(\$proc.Id)."
-} catch {
-  Write-Log "Direct launch failed: \$_. Trying via explorer..."
+\$already = Get-Process -Name "zoc" -ErrorAction SilentlyContinue
+if (\$already) {
+  Write-Log "Zoc already running (PID \$(\$already.Id)). Skipping extra launch."
+} else {
+  Write-Log "Launching updated app: \$exe"
   try {
-    Start-Process "explorer.exe" -ArgumentList "`"\$exe`""
-    Write-Log "Launched via explorer.exe."
+    \$proc = Start-Process -FilePath \$exe `
+      -WorkingDirectory \$dest -WindowStyle Normal -PassThru
+    Write-Log "App launched with PID \$(\$proc.Id)."
   } catch {
-    Write-Log "Explorer fallback also failed: \$_"
+    Write-Log "Direct launch failed: \$_. Trying via explorer..."
+    try {
+      Start-Process "explorer.exe" -ArgumentList "`"\$exe`""
+      Write-Log "Launched via explorer.exe."
+    } catch {
+      Write-Log "Explorer fallback also failed: \$_"
+    }
   }
 }
 Write-Log "Updater finished."
@@ -274,7 +279,7 @@ rm -rf "\$DEST"
 cp -R "\$SOURCE" "\$DEST"
 chmod -R u+w "\$DEST" || true
 xattr -cr "\$DEST" 2>/dev/null || true
-open -n "\$DEST" || open "\$DEST"
+open "\$DEST"
 ''';
     await File(scriptPath).writeAsString(script);
     await Process.run('chmod', ['+x', scriptPath]);

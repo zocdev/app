@@ -38,7 +38,8 @@ Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 
-; Automatically prompt to close running instances during install/update
+; Close running instances so files can be replaced, then restart them.
+; Do not also launch from [Run] when that restart already brought Zoc back.
 CloseApplications=yes
 RestartApplications=yes
 
@@ -63,5 +64,29 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Name: "{userstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall; Check: ShouldLaunchApp
+
+[Code]
+function IsZocRunning(): Boolean;
+var
+  Locator: Variant;
+  Service: Variant;
+  Processes: Variant;
+begin
+  Result := False;
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('.', 'root\CIMV2');
+    Processes := Service.ExecQuery(
+      'SELECT ProcessId FROM Win32_Process WHERE Name=''zoc.exe''');
+    Result := Processes.Count > 0;
+  except
+    Result := False;
+  end;
+end;
+
+function ShouldLaunchApp(): Boolean;
+begin
+  Result := not IsZocRunning();
+end;
 
