@@ -78,6 +78,7 @@ class AddAtivitiesCall {
     String? screenshot = '',
   }) async {
     final tasks = _serializeList(tasksList);
+    final screenshotPayload = screenshot?.trim() ?? '';
 
     final ffApiRequestBody = '''
 {
@@ -87,7 +88,7 @@ class AddAtivitiesCall {
   "ignored_popup": $ignoredPopUp,
   "notes": "${escapeStringForJson(notes)}",
   "createdAt": "${escapeStringForJson(createdAt)}",
-  "screenshot": "${escapeStringForJson(screenshot)}"
+  "screenshot": "${escapeStringForJson(screenshotPayload)}"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'AddAtivities',
@@ -523,9 +524,9 @@ String _serializeList(List? list) {
   }
 }
 
-String? escapeStringForJson(String? input) {
+String escapeStringForJson(String? input) {
   if (input == null) {
-    return null;
+    return '';
   }
   return input
       .replaceAll('\\', '\\\\')

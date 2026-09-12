@@ -9,7 +9,10 @@ String? compressScreenshotBase64(
   int quality = 75,
 }) {
   final decoded = img.decodeImage(bytes);
-  if (decoded == null) return null;
+  if (decoded == null) {
+    if (bytes.isEmpty) return null;
+    return base64Encode(bytes);
+  }
 
   final resized = decoded.width > maxWidth
       ? img.copyResize(decoded, width: maxWidth)
