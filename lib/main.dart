@@ -299,7 +299,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
   @override
   void onWindowMinimize() {
-    if (!_isDialogOpen) {
+    if (!_isDialogOpen && !FFAppState().isPopupVisible) {
       windowManager.hide();
     }
   }

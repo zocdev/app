@@ -14,10 +14,8 @@ import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'popup_dialog_model.dart';
 export 'popup_dialog_model.dart';
-import 'package:window_manager/window_manager.dart';
+import '/desktop/popup_window.dart';
 import 'dart:async';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 
 class PopupDialogWidget extends StatefulWidget {
   const PopupDialogWidget({
@@ -69,15 +67,15 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => PopupDialogModel());
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      windowManager.setSize(const Size(510, 600));
-    }
 
     FFAppState().isPopupVisible = true;
     FFAppState().taskOptions = [];
 
     // On component load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
+      await prepareDesktopWindowForPopup();
+      if (!mounted) return;
+      FocusScope.of(context).requestFocus();
       _scheduleIgnoreTimer();
 
       _model.soundPlayer ??= AudioPlayer();
@@ -104,9 +102,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   void dispose() {
     _ignoreTimer?.cancel();
     _model.maybeDispose();
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      windowManager.setSize(const Size(510, 435));
-    }
+    restoreDesktopWindowAfterPopup();
 
     super.dispose();
   }

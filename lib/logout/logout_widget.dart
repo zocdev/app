@@ -11,7 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'logout_model.dart';
 export 'logout_model.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
+import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
 
 class LogoutWidget extends StatefulWidget {
@@ -84,8 +84,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
               FFAppState().isPopupVisible = false;
               return;
             }
-            appWindow.restore();
-            appWindow.show();
+            await prepareDesktopWindowForPopup();
           }
           if (!mounted) {
             FFAppState().isPopupVisible = false;
@@ -115,6 +114,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
             },
           ).then((value) => safeSetState(() {}));
 
+          await restoreDesktopWindowAfterPopup();
           if (!mounted) return;
           FFAppState().contador = 0;
           FFAppState().isPopupVisible = false;
