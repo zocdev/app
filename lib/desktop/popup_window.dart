@@ -10,6 +10,16 @@ bool get isDesktopWindow =>
     (defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.macOS);
 
+/// Captured on the first [prepareDesktopWindowForPopup] of a popup cycle.
+/// `prepare`/`restore` can run twice (host + dialog), so only the first
+/// visibility check is kept.
+bool? _wasHiddenBeforePopup;
+
+Future<bool> _isHiddenOrMinimized() async {
+  if (!await windowManager.isVisible()) return true;
+  return windowManager.isMinimized();
+}
+
 /// Shows a tray-hidden window so Flutter can receive clicks again.
 ///
 /// Close-to-tray uses `SW_HIDE`. Showing via bitsdojo (or a timer) can make
@@ -18,6 +28,7 @@ bool get isDesktopWindow =>
 Future<void> prepareDesktopWindowForPopup() async {
   if (!isDesktopWindow) return;
   try {
+    _wasHiddenBeforePopup ??= await _isHiddenOrMinimized();
     await windowManager.show();
     await windowManager.restore();
     await windowManager.setSkipTaskbar(false);
@@ -33,5 +44,9 @@ Future<void> restoreDesktopWindowAfterPopup() async {
   try {
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSize(kDesktopWindowSize);
+    if (_wasHiddenBeforePopup == true) {
+      await windowManager.hide();
+    }
+    _wasHiddenBeforePopup = null;
   } catch (_) {}
 }
