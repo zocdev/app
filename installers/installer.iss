@@ -39,6 +39,7 @@ SolidCompression=yes
 WizardStyle=modern
 
 ; Close running instances so files can be replaced, then restart them.
+; Tray Zoc ignores WM_CLOSE; PrepareToInstall force-closes if RM cannot.
 ; Do not also launch from [Run] when that restart already brought Zoc back.
 CloseApplications=yes
 RestartApplications=yes
@@ -78,11 +79,58 @@ begin
     Locator := CreateOleObject('WbemScripting.SWbemLocator');
     Service := Locator.ConnectServer('.', 'root\CIMV2');
     Processes := Service.ExecQuery(
-      'SELECT ProcessId FROM Win32_Process WHERE Name=''zoc.exe''');
+      'SELECT ProcessId FROM Win32_Process WHERE Name=''{#MyAppExeName}''');
     Result := Processes.Count > 0;
   except
     Result := False;
   end;
+end;
+
+function CloseZoc(): Boolean;
+var
+  ResultCode: Integer;
+  Attempts: Integer;
+begin
+  Result := True;
+  if not IsZocRunning() then
+    Exit;
+
+  Exec(ExpandConstant('{sys}\taskkill.exe'),
+    '/IM {#MyAppExeName} /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  for Attempts := 1 to 8 do
+  begin
+    if not IsZocRunning() then
+      Exit;
+    Sleep(250);
+  end;
+
+  Exec(ExpandConstant('{sys}\taskkill.exe'),
+    '/F /IM {#MyAppExeName} /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  for Attempts := 1 to 12 do
+  begin
+    if not IsZocRunning() then
+      Exit;
+    Sleep(250);
+  end;
+
+  Result := not IsZocRunning();
+end;
+
+function ZocStillRunningMessage(): String;
+begin
+  Result :=
+    'O ZOC está em execução e não foi possível fechá-lo automaticamente.' + #13#10 +
+    #13#10 +
+    'Feche o programa e clique em Tentar novamente para continuar a instalação.';
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := '';
+  if IsZocRunning() and not CloseZoc() then
+    Result := ZocStillRunningMessage();
 end;
 
 function ShouldLaunchApp(): Boolean;
