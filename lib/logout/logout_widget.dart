@@ -201,7 +201,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                     'assets/images/ZOC.webp',
                                     width: 90.0,
                                     height: 80.0,
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
@@ -226,14 +226,14 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
                                             .override(
-                                              font: GoogleFonts.montserrat(
+                                              font: GoogleFonts.inter(
                                                 fontWeight: FontWeight.w600,
                                                 fontStyle:
                                                     FlutterFlowTheme.of(context)
                                                         .bodyMedium
                                                         .fontStyle,
                                               ),
-                                              color: Color(0xFF102A43),
+                                              color: Color(0xFF101827),
                                               fontSize: 14.0,
                                               letterSpacing: 0.0,
                                               fontWeight: FontWeight.w600,
@@ -278,13 +278,13 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                               style: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF102A43),
+                                    color: Color(0xFF101827),
                                     fontSize: 20.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
@@ -311,11 +311,11 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                 padding: EdgeInsets.all(5.0),
                                 iconPadding: EdgeInsetsDirectional.fromSTEB(
                                     0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF4CAED1),
+                                color: Color(0xFF0F8F8A),
                                 textStyle: FlutterFlowTheme.of(context)
                                     .titleSmall
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.w500,
                                         fontStyle: FlutterFlowTheme.of(context)
                                             .titleSmall
@@ -331,7 +331,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                     ),
                                 elevation: 0.0,
                                 borderSide: BorderSide(
-                                  color: Color(0xB0BFEEFD),
+                                  color: Color(0xB0D5F0EE),
                                 ),
                                 borderRadius: BorderRadius.only(
                                   bottomLeft: Radius.circular(12.0),
@@ -363,14 +363,14 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             fontSize: 14.0,
                                             letterSpacing: 0.0,
                                             fontWeight: FontWeight.w500,
@@ -389,7 +389,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
                                       .secondaryBackground,
                                   icon: Icon(
                                     Icons.login,
-                                    color: Color(0xFF006994),
+                                    color: Color(0xFF0F8F8A),
                                     size: 24.0,
                                   ),
                                   onPressed: () async {

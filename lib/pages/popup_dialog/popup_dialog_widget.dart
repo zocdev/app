@@ -118,8 +118,13 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
         height: 570.4,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFFADDAEA), Color(0xFF4CAED1)],
-            stops: [0.2, 0.5, 1.0],
+            colors: [
+              Colors.white,
+              Color(0xFFF6F8FA),
+              Color(0xFFE6F4F3),
+              Color(0xFFD5F0EE),
+            ],
+            stops: [0.0, 0.4, 0.75, 1.0],
             begin: AlignmentDirectional(-1.0, -1.0),
             end: AlignmentDirectional(1.0, 1.0),
           ),
@@ -161,7 +166,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                   'assets/images/ZOC.webp',
                                   width: 90.0,
                                   height: 80.0,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
@@ -173,13 +178,13 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                   Text(
                     'No que está trabalhando?',
                     style: FlutterFlowTheme.of(context).bodyMedium.override(
-                          font: GoogleFonts.montserrat(
+                          font: GoogleFonts.inter(
                             fontWeight: FontWeight.w600,
                             fontStyle: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .fontStyle,
                           ),
-                          color: Color(0xFF102A43),
+                          color: Color(0xFF101827),
                           fontSize: 30.0,
                           letterSpacing: 0.0,
                           fontWeight: FontWeight.w600,
@@ -254,13 +259,13 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                               ),
                       textStyle:
                           FlutterFlowTheme.of(context).bodyMedium.override(
-                                font: GoogleFonts.montserrat(
+                                font: GoogleFonts.inter(
                                   fontWeight: FontWeight.w500,
                                   fontStyle: FlutterFlowTheme.of(context)
                                       .bodyMedium
                                       .fontStyle,
                                 ),
-                                color: Color(0xFF006994),
+                                color: Color(0xFF0F8F8A),
                                 fontSize: 14.0,
                                 letterSpacing: 0.0,
                                 fontWeight: FontWeight.w500,
@@ -275,7 +280,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                           FlutterFlowTheme.of(context).primaryBackground,
                       icon: Icon(
                         Icons.keyboard_arrow_down,
-                        color: Color(0xFF006994),
+                        color: Color(0xFF0F8F8A),
                         size: 25.0,
                       ),
                       fillColor: FlutterFlowTheme.of(context).primaryBackground,
@@ -388,13 +393,13 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 ),
                         textStyle:
                             FlutterFlowTheme.of(context).bodyMedium.override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.w500,
                                     fontStyle: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontStyle,
                                   ),
-                                  color: Color(0xFF006994),
+                                  color: Color(0xFF0F8F8A),
                                   fontSize: 14.0,
                                   letterSpacing: 0.0,
                                   fontWeight: FontWeight.w500,
@@ -409,7 +414,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                             FlutterFlowTheme.of(context).primaryBackground,
                         icon: Icon(
                           Icons.keyboard_arrow_down,
-                          color: Color(0xFF006994),
+                          color: Color(0xFF0F8F8A),
                           size: 25.0,
                         ),
                         fillColor:
@@ -492,13 +497,13 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                   ),
                           textStyle:
                               FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF006994),
+                                    color: Color(0xFF0F8F8A),
                                     fontSize: 14.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
@@ -510,7 +515,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                           searchHintText: 'Search...',
                           icon: Icon(
                             Icons.keyboard_arrow_down_sharp,
-                            color: Color(0xFF006994),
+                            color: Color(0xFF0F8F8A),
                             size: 25.0,
                           ),
                           fillColor:
@@ -574,7 +579,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                           .labelMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF006994),
+                                    color: Color(0xFF0F8F8A),
                                     letterSpacing: 0.0,
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .labelMedium
@@ -707,11 +712,11 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                               16.0, 0.0, 16.0, 0.0),
                           iconPadding: EdgeInsetsDirectional.fromSTEB(
                               0.0, 0.0, 0.0, 0.0),
-                          color: Color(0xFF006994),
+                          color: Color(0xFF0F8F8A),
                           textStyle: FlutterFlowTheme.of(context)
                               .displayMedium
                               .override(
-                                font: GoogleFonts.montserrat(
+                                font: GoogleFonts.inter(
                                   fontWeight: FontWeight.bold,
                                   fontStyle: FlutterFlowTheme.of(context)
                                       .displayMedium

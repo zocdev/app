@@ -76,11 +76,12 @@ class _LoginWidgetState extends State<LoginWidget> {
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white,
-                Color(0xFFADDAEA),
-                Color(0xFF4CAED1),
+                Color(0xFFFFFFFF),
+                Color(0xFFF6F8FA),
+                Color(0xFFE6F4F3),
+                Color(0xFFD5F0EE),
               ],
-              stops: [0.2, 0.5, 1.0],
+              stops: [0.0, 0.4, 0.75, 1.0],
               begin: AlignmentDirectional(-1.0, -1.0),
               end: AlignmentDirectional(1.0, 1.0),
             ),
@@ -104,17 +105,17 @@ class _LoginWidgetState extends State<LoginWidget> {
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 0.0, 20.0, 0.0, 0.0),
                             child: Text(
-                              'Login no Zoc',
+                              'Login no ZOC',
                               style: FlutterFlowTheme.of(context)
                                   .displaySmall
                                   .override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .displaySmall
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF102A43),
+                                    color: Color(0xFF101827),
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.bold,
                                     fontStyle: FlutterFlowTheme.of(context)
@@ -138,7 +139,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                         .bodyMedium
                                         .fontStyle,
                                   ),
-                                  color: Color(0xFFE50A2A),
+                                  color: Color(0xFFD92D20),
                                   fontSize: 14.0,
                                   letterSpacing: 0.0,
                                   fontWeight: FlutterFlowTheme.of(context)
@@ -166,14 +167,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .displaySmall
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.w500,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .displaySmall
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 14.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w500,
@@ -219,7 +220,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                                       .labelMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             fontSize: 16.0,
                                             letterSpacing: 0.0,
                                             fontWeight:
@@ -234,7 +235,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                       hintStyle: FlutterFlowTheme.of(context)
                                           .labelSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight:
                                                   FlutterFlowTheme.of(context)
                                                       .labelSmall
@@ -244,7 +245,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                                       .labelSmall
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFFA0AEC0),
+                                            color: Color(0xFF667085),
                                             letterSpacing: 0.0,
                                             fontWeight:
                                                 FlutterFlowTheme.of(context)
@@ -303,7 +304,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 16.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w500,
@@ -340,7 +341,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                       },
                                       activeColor: FlutterFlowTheme.of(context)
                                           .secondaryBackground,
-                                      activeTrackColor: Color(0xFF006994),
+                                      activeTrackColor: Color(0xFF0F8F8A),
                                       inactiveTrackColor:
                                           FlutterFlowTheme.of(context)
                                               .alternate,
@@ -356,14 +357,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
                                             .override(
-                                              font: GoogleFonts.montserrat(
+                                              font: GoogleFonts.inter(
                                                 fontWeight: FontWeight.w500,
                                                 fontStyle:
                                                     FlutterFlowTheme.of(context)
                                                         .bodyMedium
                                                         .fontStyle,
                                               ),
-                                              color: Color(0xFF102A43),
+                                              color: Color(0xFF101827),
                                               letterSpacing: 0.0,
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
@@ -477,11 +478,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                                     16.0, 0.0, 16.0, 0.0),
                                 iconPadding: EdgeInsetsDirectional.fromSTEB(
                                     0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF006994),
+                                color: Color(0xFF0F8F8A),
                                 textStyle: FlutterFlowTheme.of(context)
                                     .labelSmall
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontStyle: FlutterFlowTheme.of(context)
                                             .labelSmall

@@ -68,7 +68,7 @@ class _NotAtivitiesWidgetState extends State<NotAtivitiesWidget> {
                     Text(
                       'Sem atividades...',
                       style: FlutterFlowTheme.of(context).bodyLarge.override(
-                            font: GoogleFonts.montserrat(
+                            font: GoogleFonts.inter(
                               fontWeight: FontWeight.w600,
                               fontStyle: FlutterFlowTheme.of(context)
                                   .bodyLarge

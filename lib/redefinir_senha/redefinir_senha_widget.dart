@@ -110,7 +110,7 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                     'assets/images/ZOC.webp',
                                     width: 90.0,
                                     height: 80.0,
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
@@ -157,14 +157,14 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .displaySmall
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.w600,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .displaySmall
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 20.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w600,
@@ -184,14 +184,14 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.w500,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 15.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w500,
@@ -213,14 +213,14 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             fontSize: 15.0,
                                             letterSpacing: 0.0,
                                             fontWeight: FontWeight.w500,
@@ -270,7 +270,7 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                         hintStyle: FlutterFlowTheme.of(context)
                                             .labelSmall
                                             .override(
-                                              font: GoogleFonts.montserrat(
+                                              font: GoogleFonts.inter(
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
                                                         .labelSmall
@@ -280,7 +280,7 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                                         .labelSmall
                                                         .fontStyle,
                                               ),
-                                              color: Color(0xFFA0AEC0),
+                                              color: Color(0xFF667085),
                                               letterSpacing: 0.0,
                                               fontWeight:
                                                   FlutterFlowTheme.of(context)
@@ -293,7 +293,7 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                             ),
                                         enabledBorder: OutlineInputBorder(
                                           borderSide: BorderSide(
-                                            color: Color(0xB0BFEEFD),
+                                            color: Color(0xB0D5F0EE),
                                             width: 1.0,
                                           ),
                                           borderRadius:
@@ -412,11 +412,11 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                     16.0, 0.0, 16.0, 0.0),
                                 iconPadding: EdgeInsetsDirectional.fromSTEB(
                                     0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF006994),
+                                color: Color(0xFF0F8F8A),
                                 textStyle: FlutterFlowTheme.of(context)
                                     .labelSmall
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.bold,
                                         fontStyle: FlutterFlowTheme.of(context)
                                             .labelSmall
@@ -461,13 +461,13 @@ class _RedefinirSenhaWidgetState extends State<RedefinirSenhaWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.w500,
                                         fontStyle: FlutterFlowTheme.of(context)
                                             .bodyMedium
                                             .fontStyle,
                                       ),
-                                      color: Color(0xFF006994),
+                                      color: Color(0xFF0F8F8A),
                                       letterSpacing: 0.0,
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)

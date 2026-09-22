@@ -109,7 +109,7 @@ class _MensajeAntesExpedienteWidgetState
                                     'assets/images/ZOC.webp',
                                     width: 90.0,
                                     height: 80.0,
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
@@ -134,11 +134,11 @@ class _MensajeAntesExpedienteWidgetState
                                   style: FlutterFlowTheme.of(context)
                                       .bodyMedium
                                       .override(
-                                        font: GoogleFonts.montserrat(
+                                        font: GoogleFonts.inter(
                                           fontWeight: FontWeight.w500,
                                           fontStyle: FontStyle.italic,
                                         ),
-                                        color: Color(0xFF102A43),
+                                        color: Color(0xFF101827),
                                         fontSize: 15.0,
                                         letterSpacing: 0.0,
                                         fontWeight: FontWeight.w500,
@@ -165,11 +165,11 @@ class _MensajeAntesExpedienteWidgetState
                                 16.0, 0.0, 16.0, 0.0),
                             iconPadding: EdgeInsetsDirectional.fromSTEB(
                                 0.0, 0.0, 0.0, 0.0),
-                            color: Color(0xFF006994),
+                            color: Color(0xFF0F8F8A),
                             textStyle: FlutterFlowTheme.of(context)
                                 .titleSmall
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.bold,
                                     fontStyle: FlutterFlowTheme.of(context)
                                         .titleSmall

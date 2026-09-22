@@ -156,7 +156,7 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                   'assets/images/ZOC.webp',
                                   width: 90.0,
                                   height: 80.0,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
@@ -180,14 +180,14 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                   style: FlutterFlowTheme.of(context)
                                       .displaySmall
                                       .override(
-                                        font: GoogleFonts.montserrat(
+                                        font: GoogleFonts.inter(
                                           fontWeight: FontWeight.w600,
                                           fontStyle:
                                               FlutterFlowTheme.of(context)
                                                   .displaySmall
                                                   .fontStyle,
                                         ),
-                                        color: Color(0xFF102A43),
+                                        color: Color(0xFF101827),
                                         fontSize: 18.0,
                                         letterSpacing: 0.0,
                                         fontWeight: FontWeight.w600,
@@ -210,14 +210,14 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .displaySmall
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.w500,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .displaySmall
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 15.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w500,
@@ -249,11 +249,11 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                       iconPadding:
                                           EdgeInsetsDirectional.fromSTEB(
                                               0.0, 0.0, 0.0, 0.0),
-                                      color: Color(0xFF006994),
+                                      color: Color(0xFF0F8F8A),
                                       textStyle: FlutterFlowTheme.of(context)
                                           .labelSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w600,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -306,14 +306,14 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.normal,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 13.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.normal,
@@ -347,14 +347,14 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF006994),
+                                            color: Color(0xFF0F8F8A),
                                             fontSize: 13.0,
                                             letterSpacing: 0.0,
                                             fontWeight: FontWeight.w500,

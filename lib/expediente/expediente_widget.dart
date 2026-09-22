@@ -173,7 +173,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                   style: FlutterFlowTheme.of(context)
                                       .bodyMedium
                                       .override(
-                                        font: GoogleFonts.montserrat(
+                                        font: GoogleFonts.inter(
                                           fontWeight:
                                               FlutterFlowTheme.of(context)
                                                   .bodyMedium
@@ -183,7 +183,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                   .bodyMedium
                                                   .fontStyle,
                                         ),
-                                        color: Color(0xFF102A43),
+                                        color: Color(0xFF101827),
                                         letterSpacing: 0.0,
                                         fontWeight: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -205,7 +205,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       child: FlutterFlowIconButton(
                                         borderRadius: 8.0,
                                         buttonSize: 30.0,
-                                        fillColor: Color(0xFF006994),
+                                        fillColor: Color(0xFF0F8F8A),
                                         icon: FaIcon(
                                           FontAwesomeIcons.solidFilePdf,
                                           color: Colors.white,
@@ -415,7 +415,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       textStyle: FlutterFlowTheme.of(context)
                                           .titleSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.normal,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -434,11 +434,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                           ),
                                       elevation: 0.0,
                                       borderSide: BorderSide(
-                                        color: Color(0x3F4CAED1),
+                                        color: Color(0x3F0F8F8A),
                                       ),
                                       borderRadius: BorderRadius.circular(8.0),
-                                      hoverColor: Color(0x414CAED1),
-                                      hoverTextColor: Color(0xFF4CAED1),
+                                      hoverColor: Color(0x410F8F8A),
+                                      hoverTextColor: Color(0xFF0F8F8A),
                                     ),
                                     showLoadingIndicator: false,
                                   ),
@@ -540,7 +540,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       textStyle: FlutterFlowTheme.of(context)
                                           .titleSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.normal,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -559,11 +559,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                           ),
                                       elevation: 0.0,
                                       borderSide: BorderSide(
-                                        color: Color(0x3F4CAED1),
+                                        color: Color(0x3F0F8F8A),
                                       ),
                                       borderRadius: BorderRadius.circular(8.0),
-                                      hoverColor: Color(0x414CAED1),
-                                      hoverTextColor: Color(0xFF4CAED1),
+                                      hoverColor: Color(0x410F8F8A),
+                                      hoverTextColor: Color(0xFF0F8F8A),
                                     ),
                                     showLoadingIndicator: false,
                                   ),
@@ -665,7 +665,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       textStyle: FlutterFlowTheme.of(context)
                                           .titleSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.normal,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -684,11 +684,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                           ),
                                       elevation: 0.0,
                                       borderSide: BorderSide(
-                                        color: Color(0x3F4CAED1),
+                                        color: Color(0x3F0F8F8A),
                                       ),
                                       borderRadius: BorderRadius.circular(8.0),
-                                      hoverColor: Color(0x404CAED1),
-                                      hoverTextColor: Color(0xFF4CAED1),
+                                      hoverColor: Color(0x400F8F8A),
+                                      hoverTextColor: Color(0xFF0F8F8A),
                                     ),
                                     showLoadingIndicator: false,
                                   ),
@@ -720,7 +720,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                             context,
                                             child!,
                                             headerBackgroundColor:
-                                                Color(0xFF006994),
+                                                Color(0xFF0F8F8A),
                                             headerForegroundColor:
                                                 FlutterFlowTheme.of(context)
                                                     .info,
@@ -728,7 +728,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                     .of(context)
                                                 .headlineLarge
                                                 .override(
-                                                  font: GoogleFonts.montserrat(
+                                                  font: GoogleFonts.inter(
                                                     fontWeight: FontWeight.w600,
                                                     fontStyle:
                                                         FlutterFlowTheme.of(
@@ -752,7 +752,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                 FlutterFlowTheme.of(context)
                                                     .primaryText,
                                             selectedDateTimeBackgroundColor:
-                                                Color(0xFF006994),
+                                                Color(0xFF0F8F8A),
                                             selectedDateTimeForegroundColor:
                                                 FlutterFlowTheme.of(context)
                                                     .info,
@@ -790,11 +790,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       iconPadding:
                                           EdgeInsetsDirectional.fromSTEB(
                                               0.0, 0.0, 0.0, 0.0),
-                                      color: Color(0xFF006994),
+                                      color: Color(0xFF0F8F8A),
                                       textStyle: FlutterFlowTheme.of(context)
                                           .titleSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -827,7 +827,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
@@ -837,7 +837,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             letterSpacing: 0.0,
                                             fontWeight:
                                                 FlutterFlowTheme.of(context)
@@ -863,7 +863,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                             context,
                                             child!,
                                             headerBackgroundColor:
-                                                Color(0xFF006994),
+                                                Color(0xFF0F8F8A),
                                             headerForegroundColor:
                                                 FlutterFlowTheme.of(context)
                                                     .info,
@@ -871,7 +871,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                     .of(context)
                                                 .headlineLarge
                                                 .override(
-                                                  font: GoogleFonts.montserrat(
+                                                  font: GoogleFonts.inter(
                                                     fontWeight: FontWeight.w600,
                                                     fontStyle:
                                                         FlutterFlowTheme.of(
@@ -895,7 +895,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                 FlutterFlowTheme.of(context)
                                                     .primaryText,
                                             selectedDateTimeBackgroundColor:
-                                                Color(0xFF006994),
+                                                Color(0xFF0F8F8A),
                                             selectedDateTimeForegroundColor:
                                                 FlutterFlowTheme.of(context)
                                                     .info,
@@ -1019,11 +1019,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       iconPadding:
                                           EdgeInsetsDirectional.fromSTEB(
                                               0.0, 0.0, 0.0, 0.0),
-                                      color: Color(0xFF006994),
+                                      color: Color(0xFF0F8F8A),
                                       textStyle: FlutterFlowTheme.of(context)
                                           .titleSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
@@ -1056,7 +1056,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                       style: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
@@ -1066,7 +1066,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             letterSpacing: 0.0,
                                             fontWeight:
                                                 FlutterFlowTheme.of(context)
@@ -1181,7 +1181,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                         },
                                         child: Icon(
                                           Icons.close,
-                                          color: Color(0xFF006994),
+                                          color: Color(0xFF0F8F8A),
                                           size: 20.0,
                                         ),
                                       ),
@@ -1202,7 +1202,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                         boxShadow: [
                                           BoxShadow(
                                             blurRadius: 4.0,
-                                            color: Color(0x404CAED1),
+                                            color: Color(0x400F8F8A),
                                             offset: Offset(
                                               4.0,
                                               4.0,
@@ -1216,7 +1216,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                           topRight: Radius.circular(10.0),
                                         ),
                                         border: Border.all(
-                                          color: Color(0x3F4CAED1),
+                                          color: Color(0x3F0F8F8A),
                                           width: 1.0,
                                         ),
                                       ),
@@ -1263,7 +1263,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                             ),
                                                             color: Color(
-                                                                0xFF102A43),
+                                                                0xFF101827),
                                                             fontSize: 14.0,
                                                             letterSpacing: 0.0,
                                                             fontWeight:
@@ -1327,7 +1327,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                                 ),
                                                                 color: Color(
-                                                                    0xFF102A43),
+                                                                    0xFF101827),
                                                                 fontSize: 16.0,
                                                                 letterSpacing:
                                                                     0.0,
@@ -1362,7 +1362,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                         boxShadow: [
                                           BoxShadow(
                                             blurRadius: 4.0,
-                                            color: Color(0x404CAED1),
+                                            color: Color(0x400F8F8A),
                                             offset: Offset(
                                               4.0,
                                               4.0,
@@ -1376,7 +1376,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                           topRight: Radius.circular(10.0),
                                         ),
                                         border: Border.all(
-                                          color: Color(0x3F4CAED1),
+                                          color: Color(0x3F0F8F8A),
                                           width: 1.0,
                                         ),
                                       ),
@@ -1425,7 +1425,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                             ),
                                                             color: Color(
-                                                                0xFF102A43),
+                                                                0xFF101827),
                                                             fontSize: 14.0,
                                                             letterSpacing: 0.0,
                                                             fontWeight:
@@ -1496,7 +1496,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                                 ),
                                                                 color: Color(
-                                                                    0xFF102A43),
+                                                                    0xFF101827),
                                                                 fontSize: 16.0,
                                                                 letterSpacing:
                                                                     0.0,
@@ -1537,7 +1537,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                 boxShadow: [
                                   BoxShadow(
                                     blurRadius: 4.0,
-                                    color: Color(0x404CAED1),
+                                    color: Color(0x400F8F8A),
                                     offset: Offset(
                                       4.0,
                                       4.0,
@@ -1551,7 +1551,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                   topRight: Radius.circular(10.0),
                                 ),
                                 border: Border.all(
-                                  color: Color(0x3F4CAED1),
+                                  color: Color(0x3F0F8F8A),
                                   width: 1.0,
                                 ),
                               ),
@@ -1596,7 +1596,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                     .fontStyle,
                                                           ),
                                                           color:
-                                                              Color(0xFF102A43),
+                                                              Color(0xFF101827),
                                                           fontSize: 14.0,
                                                           letterSpacing: 0.0,
                                                           fontWeight:
@@ -1632,7 +1632,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                   .fontStyle,
                                                         ),
                                                         color:
-                                                            Color(0xFF102A43),
+                                                            Color(0xFF101827),
                                                         fontSize: 10.0,
                                                         letterSpacing: 0.0,
                                                         fontWeight:
@@ -1667,7 +1667,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                   TooltipTriggerMode.tap,
                                               child: Icon(
                                                 Icons.help_sharp,
-                                                color: Color(0xFF006994),
+                                                color: Color(0xFF0F8F8A),
                                                 size: 20.0,
                                               ),
                                             ),
@@ -1904,7 +1904,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                         .fontStyle,
                                                                   ),
                                                                   color: Color(
-                                                                      0xFF102A43),
+                                                                      0xFF101827),
                                                                   letterSpacing:
                                                                       0.0,
                                                                   fontWeight: FlutterFlowTheme.of(
@@ -1948,7 +1948,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                                 ),
                                                                 color: Color(
-                                                                    0xFF102A43),
+                                                                    0xFF101827),
                                                                 letterSpacing:
                                                                     0.0,
                                                                 fontWeight: FlutterFlowTheme.of(
@@ -2004,7 +2004,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                                       .fontStyle,
                                                                 ),
                                                                 color: Color(
-                                                                    0xFF102A43),
+                                                                    0xFF101827),
                                                                 fontSize: 12.0,
                                                                 letterSpacing:
                                                                     0.0,
@@ -2040,7 +2040,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                                 dataRowHeight: 35.0,
                                                 columnSpacing: 34.0,
                                                 headingRowColor:
-                                                    Color(0xFF006994),
+                                                    Color(0xFF0F8F8A),
                                                 borderRadius:
                                                     BorderRadius.circular(8.0),
                                                 addHorizontalDivider: true,

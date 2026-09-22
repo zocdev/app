@@ -279,9 +279,9 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
     final hasFocus = _model.otpFocusNodes[index].hasFocus;
     final hasValue = _model.otpControllers[index].text.isNotEmpty;
     final borderColor = hasFocus
-        ? const Color(0xFF4CAED1)
+        ? const Color(0xFF0F8F8A)
         : hasValue
-            ? const Color(0xFF006994)
+            ? const Color(0xFF0F8F8A)
             : FlutterFlowTheme.of(context).alternate;
 
     return SizedBox(
@@ -320,7 +320,7 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
               borderSide:
-                  const BorderSide(color: Color(0xFF4CAED1), width: 2.0),
+                  const BorderSide(color: Color(0xFF0F8F8A), width: 2.0),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.0),
@@ -394,7 +394,7 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                                 'assets/images/ZOC.webp',
                                 width: 90.0,
                                 height: 80.0,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                               ),
                             ),
                             IconButton(
@@ -403,7 +403,7 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                               },
                               icon: const Icon(
                                 Icons.close,
-                                color: Color(0xFF102A43),
+                                color: Color(0xFF101827),
                               ),
                             ),
                           ],
@@ -420,10 +420,10 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                               style: FlutterFlowTheme.of(context)
                                   .displaySmall
                                   .override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w600,
                                     ),
-                                    color: const Color(0xFF102A43),
+                                    color: const Color(0xFF101827),
                                     fontSize: 20.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w600,
@@ -440,10 +440,10 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.normal,
                                       ),
-                                      color: const Color(0xFF102A43),
+                                      color: const Color(0xFF101827),
                                       fontSize: 14.0,
                                       letterSpacing: 0.0,
                                     ),
@@ -479,13 +479,13 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                             height: 40.0,
                             padding: const EdgeInsetsDirectional.fromSTEB(
                                 16.0, 0.0, 16.0, 0.0),
-                            color: const Color(0xFF006994),
+                            color: const Color(0xFF0F8F8A),
                             disabledColor:
-                                const Color(0xFF006994).withValues(alpha: 0.5),
+                                const Color(0xFF0F8F8A).withValues(alpha: 0.5),
                             textStyle: FlutterFlowTheme.of(context)
                                 .labelSmall
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.bold,
                                   ),
                                   color: FlutterFlowTheme.of(context)
@@ -513,10 +513,10 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.normal,
                                       ),
-                                      color: const Color(0xFF102A43),
+                                      color: const Color(0xFF101827),
                                       fontSize: 13.0,
                                       letterSpacing: 0.0,
                                     ),
@@ -541,12 +541,12 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
                                     .override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.w500,
                                       ),
                                       color: _canResend
-                                          ? const Color(0xFF006994)
-                                          : const Color(0xFF102A43)
+                                          ? const Color(0xFF0F8F8A)
+                                          : const Color(0xFF101827)
                                               .withValues(alpha: 0.4),
                                       fontSize: 13.0,
                                       letterSpacing: 0.0,
@@ -572,10 +572,10 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                             'Voltar para o login',
                             style:
                                 FlutterFlowTheme.of(context).bodyMedium.override(
-                                      font: GoogleFonts.montserrat(
+                                      font: GoogleFonts.inter(
                                         fontWeight: FontWeight.w500,
                                       ),
-                                      color: const Color(0xFF006994),
+                                      color: const Color(0xFF0F8F8A),
                                       fontSize: 13.0,
                                       letterSpacing: 0.0,
                                       fontWeight: FontWeight.w500,

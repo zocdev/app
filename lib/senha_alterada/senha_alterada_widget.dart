@@ -142,13 +142,13 @@ class _SenhaAlteradaWidgetState extends State<SenhaAlteradaWidget> {
                           'Parabéns',
                           style:
                               FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w600,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF4CAED1),
+                                    color: Color(0xFF0F8F8A),
                                     fontSize: 24.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w600,
@@ -165,13 +165,13 @@ class _SenhaAlteradaWidgetState extends State<SenhaAlteradaWidget> {
                           'Sua senha foi alterada com sucesso!',
                           style:
                               FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF102A43),
+                                    color: Color(0xFF101827),
                                     fontSize: 16.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,

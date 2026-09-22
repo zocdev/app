@@ -73,11 +73,11 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
     return InputDecoration(
       isDense: true,
       enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0xB0BFEEFD), width: 1.0),
+        borderSide: const BorderSide(color: Color(0xB0D5F0EE), width: 1.0),
         borderRadius: BorderRadius.circular(8.0),
       ),
       focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0xFF006994), width: 1.0),
+        borderSide: const BorderSide(color: Color(0xFF0F8F8A), width: 1.0),
         borderRadius: BorderRadius.circular(8.0),
       ),
       errorBorder: OutlineInputBorder(
@@ -208,7 +208,7 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                                 'assets/images/ZOC.webp',
                                 width: 90.0,
                                 height: 80.0,
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                               ),
                             ),
                             InkWell(
@@ -238,10 +238,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                           style: FlutterFlowTheme.of(context)
                               .displaySmall
                               .override(
-                                font: GoogleFonts.montserrat(
+                                font: GoogleFonts.inter(
                                   fontWeight: FontWeight.w600,
                                 ),
-                                color: const Color(0xFF102A43),
+                                color: const Color(0xFF101827),
                                 fontSize: 20.0,
                                 letterSpacing: 0.0,
                                 fontWeight: FontWeight.w600,
@@ -253,10 +253,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                           textAlign: TextAlign.center,
                           style:
                               FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w500,
                                     ),
-                                    color: const Color(0xFF102A43),
+                                    color: const Color(0xFF101827),
                                     fontSize: 14.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
@@ -270,7 +270,7 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.montserrat(),
+                                  font: GoogleFonts.inter(),
                                   color: FlutterFlowTheme.of(context).error,
                                   fontSize: 13.0,
                                   letterSpacing: 0.0,
@@ -286,10 +286,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                               style: FlutterFlowTheme.of(context)
                                   .bodyMedium
                                   .override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.w500,
                                     ),
-                                    color: const Color(0xFF102A43),
+                                    color: const Color(0xFF101827),
                                     fontSize: 13.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
@@ -321,10 +321,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  color: const Color(0xFF102A43),
+                                  color: const Color(0xFF101827),
                                   fontSize: 15.0,
                                   letterSpacing: 0.0,
                                   fontWeight: FontWeight.w500,
@@ -370,10 +370,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  color: const Color(0xFF102A43),
+                                  color: const Color(0xFF101827),
                                   fontSize: 15.0,
                                   letterSpacing: 0.0,
                                   fontWeight: FontWeight.w500,
@@ -421,12 +421,12 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                             height: 40.0,
                             padding: const EdgeInsetsDirectional.fromSTEB(
                                 16.0, 0.0, 16.0, 0.0),
-                            color: const Color(0xFF006994),
-                            disabledColor: const Color(0xFF90A4AE),
+                            color: const Color(0xFF0F8F8A),
+                            disabledColor: const Color(0xFF667085),
                             textStyle: FlutterFlowTheme.of(context)
                                 .labelSmall
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.bold,
                                   ),
                                   color: FlutterFlowTheme.of(context)
@@ -453,10 +453,10 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
                                 .override(
-                                  font: GoogleFonts.montserrat(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.w500,
                                   ),
-                                  color: const Color(0xFF006994),
+                                  color: const Color(0xFF0F8F8A),
                                   letterSpacing: 0.0,
                                   fontWeight: FontWeight.w500,
                                 ),

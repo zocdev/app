@@ -112,7 +112,7 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                   'assets/images/ZOC.webp',
                                   width: 90.0,
                                   height: 80.0,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
@@ -144,14 +144,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                       labelStyle: FlutterFlowTheme.of(context)
                                           .bodyMedium
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
                                                       .bodyMedium
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFF102A43),
+                                            color: Color(0xFF101827),
                                             fontSize: 16.0,
                                             letterSpacing: 0.0,
                                             fontWeight: FontWeight.w500,
@@ -164,14 +164,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                       hintStyle: FlutterFlowTheme.of(context)
                                           .labelSmall
                                           .override(
-                                            font: GoogleFonts.montserrat(
+                                            font: GoogleFonts.inter(
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
                                                   FlutterFlowTheme.of(context)
                                                       .labelSmall
                                                       .fontStyle,
                                             ),
-                                            color: Color(0xFFA0AEC0),
+                                            color: Color(0xFF667085),
                                             letterSpacing: 0.0,
                                             fontWeight: FontWeight.w500,
                                             fontStyle:
@@ -181,7 +181,7 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                           ),
                                       enabledBorder: OutlineInputBorder(
                                         borderSide: BorderSide(
-                                          color: Color(0x3F4CAED1),
+                                          color: Color(0x3F0F8F8A),
                                           width: 1.0,
                                         ),
                                         borderRadius:
@@ -223,14 +223,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                     style: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight: FontWeight.w500,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .bodyMedium
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF102A43),
+                                          color: Color(0xFF101827),
                                           fontSize: 16.0,
                                           letterSpacing: 0.0,
                                           fontWeight: FontWeight.w500,
@@ -262,14 +262,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                   style: FlutterFlowTheme.of(context)
                                       .displaySmall
                                       .override(
-                                        font: GoogleFonts.montserrat(
+                                        font: GoogleFonts.inter(
                                           fontWeight: FontWeight.w500,
                                           fontStyle:
                                               FlutterFlowTheme.of(context)
                                                   .displaySmall
                                                   .fontStyle,
                                         ),
-                                        color: Color(0xFF102A43),
+                                        color: Color(0xFF101827),
                                         fontSize: 14.0,
                                         letterSpacing: 0.0,
                                         fontWeight: FontWeight.w500,
@@ -318,7 +318,7 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                     hintStyle: FlutterFlowTheme.of(context)
                                         .labelSmall
                                         .override(
-                                          font: GoogleFonts.montserrat(
+                                          font: GoogleFonts.inter(
                                             fontWeight:
                                                 FlutterFlowTheme.of(context)
                                                     .labelSmall
@@ -328,7 +328,7 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                                     .labelSmall
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFFA0AEC0),
+                                          color: Color(0xFF667085),
                                           letterSpacing: 0.0,
                                           fontWeight:
                                               FlutterFlowTheme.of(context)
@@ -341,7 +341,7 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                         ),
                                     enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: Color(0xB0BFEEFD),
+                                        color: Color(0xB0D5F0EE),
                                         width: 1.0,
                                       ),
                                       borderRadius: BorderRadius.circular(8.0),
@@ -438,14 +438,14 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
                                             .override(
-                                              font: GoogleFonts.montserrat(
+                                              font: GoogleFonts.inter(
                                                 fontWeight: FontWeight.w500,
                                                 fontStyle:
                                                     FlutterFlowTheme.of(context)
                                                         .bodyMedium
                                                         .fontStyle,
                                               ),
-                                              color: Color(0xFF006994),
+                                              color: Color(0xFF0F8F8A),
                                               letterSpacing: 0.0,
                                               fontWeight: FontWeight.w500,
                                               fontStyle:
@@ -575,11 +575,11 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
                                   16.0, 0.0, 16.0, 0.0),
                               iconPadding: EdgeInsetsDirectional.fromSTEB(
                                   0.0, 0.0, 0.0, 0.0),
-                              color: Color(0xFF006994),
+                              color: Color(0xFF0F8F8A),
                               textStyle: FlutterFlowTheme.of(context)
                                   .labelSmall
                                   .override(
-                                    font: GoogleFonts.montserrat(
+                                    font: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
                                       fontStyle: FlutterFlowTheme.of(context)
                                           .labelSmall

@@ -71,7 +71,7 @@ void main() async {
         minimumSize: Size(510, 435),
         maximumSize: Size(600, 600),
         center: true,
-        title: "Zoc",
+        title: "ZOC",
         skipTaskbar: false,
       );
       windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -87,7 +87,7 @@ void main() async {
     final SystemTray systemTray = SystemTray();
     try {
       await systemTray.initSystemTray(
-        title: "Zoc",
+        title: "ZOC",
         iconPath: "assets/app_icon.ico",
       );
 

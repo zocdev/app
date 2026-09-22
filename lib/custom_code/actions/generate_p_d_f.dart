@@ -119,7 +119,7 @@ Future<void> generatePDF(
           pw.SizedBox(height: 12),
           pw.Table.fromTextArray(
             headerDecoration: pw.BoxDecoration(
-              color: PdfColor.fromHex('#4AA9DA'),
+              color: PdfColor.fromHex('#0F8F8A'),
             ),
             headerStyle: pw.TextStyle(
               fontWeight: pw.FontWeight.bold,
@@ -140,7 +140,7 @@ Future<void> generatePDF(
               color: PdfColor.fromInt(0xFFFFFFFF),
             ),
             oddRowDecoration: pw.BoxDecoration(
-              color: PdfColor.fromHex('#F7F7F7'),
+              color: PdfColor.fromHex('#F6F8FA'),
             ),
             columnWidths: {
               0: const pw.FixedColumnWidth(60),
