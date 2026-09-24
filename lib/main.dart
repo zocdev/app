@@ -13,7 +13,6 @@ import 'auth/custom_auth/auth_util.dart';
 import 'auth/custom_auth/custom_auth_user_provider.dart';
 
 import '/backend/api_requests/api_manager.dart';
-import '/backend/supabase/supabase.dart';
 import '/desktop/update_dialog.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/internationalization.dart';

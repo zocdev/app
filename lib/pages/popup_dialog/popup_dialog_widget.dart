@@ -265,7 +265,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                       .bodyMedium
                                       .fontStyle,
                                 ),
-                                color: Color(0xFF0F8F8A),
+                                color: Color(0xFF101827),
                                 fontSize: 14.0,
                                 letterSpacing: 0.0,
                                 fontWeight: FontWeight.w500,
@@ -399,7 +399,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                         .bodyMedium
                                         .fontStyle,
                                   ),
-                                  color: Color(0xFF0F8F8A),
+                                  color: Color(0xFF101827),
                                   fontSize: 14.0,
                                   letterSpacing: 0.0,
                                   fontWeight: FontWeight.w500,
@@ -503,7 +503,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                           .bodyMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF0F8F8A),
+                                    color: Color(0xFF101827),
                                     fontSize: 14.0,
                                     letterSpacing: 0.0,
                                     fontWeight: FontWeight.w500,
@@ -559,7 +559,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                           .labelMedium
                                           .fontStyle,
                                     ),
-                                    color: FlutterFlowTheme.of(context).primary,
+                                    color: Color(0xFF101827),
                                     letterSpacing: 0.0,
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .labelMedium
@@ -579,7 +579,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                           .labelMedium
                                           .fontStyle,
                                     ),
-                                    color: Color(0xFF0F8F8A),
+                                    color: Color(0xFF101827),
                                     letterSpacing: 0.0,
                                     fontWeight: FlutterFlowTheme.of(context)
                                         .labelMedium
@@ -629,7 +629,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                     .bodyMedium
                                     .fontStyle,
                               ),
-                              color: FlutterFlowTheme.of(context).primary,
+                              color: Color(0xFF101827),
                               letterSpacing: 0.0,
                               fontWeight: FlutterFlowTheme.of(context)
                                   .bodyMedium
