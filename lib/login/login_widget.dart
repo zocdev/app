@@ -12,6 +12,8 @@ import 'package:provider/provider.dart';
 import 'login_model.dart';
 import '/utils/api_error_helper.dart';
 import '/utils/error_handler.dart';
+import '/utils/screenshot_consent_dialog.dart';
+import '/utils/zoc_logo.dart';
 export 'login_model.dart';
 
 
@@ -95,108 +97,69 @@ class _LoginWidgetState extends State<LoginWidget> {
                 child: Form(
                   key: _model.formKey,
                   autovalidateMode: AutovalidateMode.always,
-                  child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Align(
-                          alignment: AlignmentDirectional(0.0, 0.0),
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 20.0, 0.0, 0.0),
-                            child: Text(
-                              'Login no ZOC',
-                              style: FlutterFlowTheme.of(context)
-                                  .displaySmall
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.bold,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .displaySmall
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.bold,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .displaySmall
-                                        .fontStyle,
-                                  ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: const [
+                            ZocLogo(
+                              width: 100.0,
+                              showTagline: false,
                             ),
-                          ),
+                          ],
                         ),
-                        if (FFAppState().loginFailed)
-                          Text(
-                            'Email ou senha inválidos. Por favor, tente novamente.',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  color: Color(0xFFD92D20),
-                                  fontSize: 14.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                          ),
-                        Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 30.0, 0.0, 20.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.max,
-                            children: [
-                              Align(
-                                alignment: AlignmentDirectional(-1.0, 0.0),
-                                child: Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      100.0, 0.0, 0.0, 0.0),
-                                  child: Text(
-                                    'E-mail',
-                                    textAlign: TextAlign.center,
-                                    style: FlutterFlowTheme.of(context)
-                                        .displaySmall
-                                        .override(
-                                          font: GoogleFonts.inter(
-                                            fontWeight: FontWeight.w500,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .displaySmall
-                                                    .fontStyle,
-                                          ),
-                                          color: Color(0xFF101827),
-                                          fontSize: 14.0,
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .displaySmall
-                                                  .fontStyle,
-                                        ),
+                        const Spacer(),
+                        Center(
+                          child: SizedBox(
+                            width: 297.0,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Login no ZOC',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF101827),
+                                    fontSize: 22.0,
+                                    letterSpacing: -0.2,
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 10.0, 0.0, 0.0),
-                                child: SizedBox(
+                                const SizedBox(height: 14.0),
+                                if (FFAppState().loginFailed)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 12.0),
+                                    child: Text(
+                                      'Email ou senha inválidos. Por favor, tente novamente.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFFD92D20),
+                                        fontSize: 13.0,
+                                      ),
+                                    ),
+                                  ),
+                                Text(
+                                  'E-mail',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF101827),
+                                    fontSize: 14.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 6.0),
+                                SizedBox(
                                   width: 297.0,
                                   child: TextFormField(
                                     controller: _model.emailTextController,
                                     focusNode: _model.emailFocusNode,
                                     onChanged: (_) => EasyDebounce.debounce(
                                       '_model.emailTextController',
-                                      Duration(milliseconds: 2000),
+                                      const Duration(milliseconds: 2000),
                                       () async {
                                         FFAppState().email =
                                             _model.emailTextController.text;
@@ -207,66 +170,22 @@ class _LoginWidgetState extends State<LoginWidget> {
                                     obscureText: false,
                                     decoration: InputDecoration(
                                       isDense: true,
-                                      labelStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelMedium
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelMedium
-                                                      .fontStyle,
-                                            ),
-                                            color: Color(0xFF101827),
-                                            fontSize: 16.0,
-                                            letterSpacing: 0.0,
-                                            fontWeight:
-                                                FlutterFlowTheme.of(context)
-                                                    .labelMedium
-                                                    .fontWeight,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .labelMedium
-                                                    .fontStyle,
-                                          ),
-                                      hintStyle: FlutterFlowTheme.of(context)
-                                          .labelSmall
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelSmall
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelSmall
-                                                      .fontStyle,
-                                            ),
-                                            color: Color(0xFF667085),
-                                            letterSpacing: 0.0,
-                                            fontWeight:
-                                                FlutterFlowTheme.of(context)
-                                                    .labelSmall
-                                                    .fontWeight,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .labelSmall
-                                                    .fontStyle,
-                                          ),
+                                      hintText: 'seu@email.com',
+                                      hintStyle: GoogleFonts.inter(
+                                        color: const Color(0xFF667085),
+                                        fontSize: 14.0,
+                                      ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Color(0x00000000),
+                                        borderSide: const BorderSide(
+                                          color: Color(0x3F0F8F8A),
                                           width: 1.0,
                                         ),
                                         borderRadius:
                                             BorderRadius.circular(8.0),
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderSide: BorderSide(
-                                          color: Color(0x00000000),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFF0F8F8A),
                                           width: 1.0,
                                         ),
                                         borderRadius:
@@ -293,28 +212,17 @@ class _LoginWidgetState extends State<LoginWidget> {
                                       filled: true,
                                       fillColor: FlutterFlowTheme.of(context)
                                           .secondaryBackground,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                        vertical: 12.0,
+                                      ),
                                     ),
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .override(
-                                          font: GoogleFonts.inter(
-                                            fontWeight: FontWeight.w500,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontStyle,
-                                          ),
-                                          color: Color(0xFF101827),
-                                          fontSize: 16.0,
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                          lineHeight: 1.6,
-                                        ),
-                                    maxLines: null,
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF101827),
+                                      fontSize: 14.0,
+                                    ),
+                                    maxLines: 1,
                                     keyboardType: TextInputType.emailAddress,
                                     cursorColor: FlutterFlowTheme.of(context)
                                         .primaryText,
@@ -323,11 +231,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                                         .asValidator(context),
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 14.0, 0.0, 0.0),
-                                child: Row(
+                                const SizedBox(height: 12.0),
+                                Row(
                                   mainAxisSize: MainAxisSize.max,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -341,7 +246,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                                       },
                                       activeColor: FlutterFlowTheme.of(context)
                                           .secondaryBackground,
-                                      activeTrackColor: Color(0xFF0F8F8A),
+                                      activeTrackColor: const Color(0xFF0F8F8A),
                                       inactiveTrackColor:
                                           FlutterFlowTheme.of(context)
                                               .alternate,
@@ -349,166 +254,136 @@ class _LoginWidgetState extends State<LoginWidget> {
                                           FlutterFlowTheme.of(context)
                                               .secondaryBackground,
                                     ),
-                                    Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          10.0, 0.0, 0.0, 0.0),
-                                      child: Text(
-                                        'Trabalho remoto',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w500,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                              color: Color(0xFF101827),
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w500,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
+                                    const SizedBox(width: 8.0),
+                                    Text(
+                                      'Trabalho remoto',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF101827),
+                                        fontSize: 14.0,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Align(
-                          alignment: AlignmentDirectional(0.0, 1.0),
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                55.0, 0.0, 55.0, 0.0),
-                            child: FFButtonWidget(
-                              onPressed: () async {
-                                if (_model.formKey.currentState != null) {
-                                  _model.formKey.currentState!.validate();
-                                }
+                                const SizedBox(height: 18.0),
+                                FFButtonWidget(
+                                  onPressed: () async {
+                                    if (_model.formKey.currentState != null) {
+                                      _model.formKey.currentState!.validate();
+                                    }
 
-                                final email = _model.emailTextController.text
-                                    .trim()
-                                    .toLowerCase();
+                                    final email = _model.emailTextController.text
+                                        .trim()
+                                        .toLowerCase();
 
-                                if (FFAppState().rememberMe == true) {
-                                  FFAppState().savedEmail = email;
-                                  safeSetState(() {});
-                                } else {
-                                  FFAppState().savedEmail = '';
-                                  safeSetState(() {});
-                                }
+                                    if (FFAppState().rememberMe == true) {
+                                      FFAppState().savedEmail = email;
+                                      safeSetState(() {});
+                                    } else {
+                                      FFAppState().savedEmail = '';
+                                      safeSetState(() {});
+                                    }
 
-                                FFAppState().email = email;
-                                safeSetState(() {});
+                                    FFAppState().email = email;
+                                    safeSetState(() {});
 
-                                final response = await VerifyEmailCall.call(
-                                  email: email,
-                                );
-
-                                if (response.statusCode == 404) {
-                                  final message =
-                                      VerifyEmailCall.emailNotFoundMessage(
-                                    response,
-                                  );
-                                  context.showError(
-                                    AppError(
-                                      type: ErrorType.validation,
-                                      message: message,
-                                      userMessage: message,
-                                      statusCode: 404,
-                                    ),
-                                    asDialog: true,
-                                  );
-                                  safeSetState(() {});
-                                  return;
-                                }
-
-                                if (response.hasError) {
-                                  final error = response.toAppError();
-                                  if (error != null) {
-                                    context.showError(error);
-                                  }
-                                  safeSetState(() {});
-                                  return;
-                                }
-
-                                final result =
-                                    VerifyEmailStruct.maybeFromMap(
-                                  response.jsonBody,
-                                );
-
-                                if (result != null) {
-                                  FFAppState().emailData = result.toMap();
-                                  safeSetState(() {});
-
-                                  if (result.exists == false) {
-                                    context.showError(
-                                      AppError(
-                                        type: ErrorType.validation,
-                                        message: VerifyEmailCall
-                                            .emailNotFoundFallback,
-                                        userMessage: VerifyEmailCall
-                                            .emailNotFoundFallback,
-                                      ),
-                                      asDialog: true,
+                                    final response = await VerifyEmailCall.call(
+                                      email: email,
                                     );
-                                  } else if (result.firstTime == true) {
-                                    context.pushNamed(InfoWidget.routeName);
-                                  } else if (result.verified == false) {
-                                    context.pushNamed(
-                                        VerifyTokenWidget.routeName);
-                                  } else {
-                                    context.pushNamed(
-                                        EntrarConSenhaWidget.routeName);
-                                  }
-                                }
 
-                                safeSetState(() {});
-                              },
-                              text: 'ENTRAR',
-                              options: FFButtonOptions(
-                                width: 297.0,
-                                height: 45.0,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF0F8F8A),
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .labelSmall
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.bold,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .labelSmall
-                                            .fontStyle,
-                                      ),
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      fontSize: 16.0,
-                                      letterSpacing: 0.0,
+                                    if (response.statusCode == 404) {
+                                      final message =
+                                          VerifyEmailCall.emailNotFoundMessage(
+                                        response,
+                                      );
+                                      context.showError(
+                                        AppError(
+                                          type: ErrorType.validation,
+                                          message: message,
+                                          userMessage: message,
+                                          statusCode: 404,
+                                        ),
+                                        asDialog: true,
+                                      );
+                                      safeSetState(() {});
+                                      return;
+                                    }
+
+                                    if (response.hasError) {
+                                      final error = response.toAppError();
+                                      if (error != null) {
+                                        context.showError(error);
+                                      }
+                                      safeSetState(() {});
+                                      return;
+                                    }
+
+                                    final result =
+                                        VerifyEmailStruct.maybeFromMap(
+                                      response.jsonBody,
+                                    );
+
+                                    if (result != null) {
+                                      FFAppState().emailData = result.toMap();
+                                      safeSetState(() {});
+
+                                      if (result.exists == false) {
+                                        context.showError(
+                                          AppError(
+                                            type: ErrorType.validation,
+                                            message: VerifyEmailCall
+                                                .emailNotFoundFallback,
+                                            userMessage: VerifyEmailCall
+                                                .emailNotFoundFallback,
+                                          ),
+                                          asDialog: true,
+                                        );
+                                      } else if (result.firstTime == true) {
+                                        context.pushNamed(InfoWidget.routeName);
+                                      } else if (result.verified == false) {
+                                        context.pushNamed(
+                                            VerifyTokenWidget.routeName);
+                                      } else {
+                                        final approved =
+                                            await showScreenshotConsentDialog(
+                                          context,
+                                        );
+                                        if (!context.mounted) return;
+                                        if (!approved) {
+                                          await denyScreenshotConsentAndLogout(
+                                            context,
+                                          );
+                                          return;
+                                        }
+                                        context.pushNamed(
+                                            EntrarConSenhaWidget.routeName);
+                                      }
+                                    }
+
+                                    safeSetState(() {});
+                                  },
+                                  text: 'ENTRAR',
+                                  options: FFButtonOptions(
+                                    width: 297.0,
+                                    height: 45.0,
+                                    padding: EdgeInsets.zero,
+                                    iconPadding: EdgeInsets.zero,
+                                    color: const Color(0xFF0F8F8A),
+                                    textStyle: GoogleFonts.inter(
                                       fontWeight: FontWeight.bold,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelSmall
-                                          .fontStyle,
+                                      color: Colors.white,
+                                      fontSize: 16.0,
                                     ),
-                                elevation: 0.0,
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(12.0),
-                                  bottomRight: Radius.circular(12.0),
-                                  topLeft: Radius.circular(12.0),
-                                  topRight: Radius.circular(12.0),
+                                    elevation: 0.0,
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  showLoadingIndicator: false,
                                 ),
-                              ),
-                              showLoadingIndicator: false,
+                              ],
                             ),
                           ),
                         ),
+                        const Spacer(),
                       ],
                     ),
                   ),

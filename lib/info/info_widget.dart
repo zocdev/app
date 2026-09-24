@@ -12,6 +12,7 @@ export 'info_model.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
+import '/utils/zoc_logo.dart';
 
 class InfoWidget extends StatefulWidget {
   const InfoWidget({super.key});
@@ -126,14 +127,9 @@ class _InfoWidgetState extends State<InfoWidget> {
                         child: Padding(
                           padding: EdgeInsetsDirectional.fromSTEB(
                               10.0, 0.0, 0.0, 0.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.asset(
-                              'assets/images/ZOC.webp',
-                              width: 90.0,
-                              height: 80.0,
-                              fit: BoxFit.contain,
-                            ),
+                          child: const ZocLogo(
+                            width: 100.0,
+                            showTagline: false,
                           ),
                         ),
                       ),
@@ -507,6 +503,7 @@ class _InfoWidgetState extends State<InfoWidget> {
                                             _model.textFieldNovaSenhaVisibility
                                                 ? Icons.visibility_outlined
                                                 : Icons.visibility_off_outlined,
+                                            color: Color(0xFF0F8F8A),
                                             size: 22,
                                           ),
                                         ),
@@ -684,6 +681,7 @@ class _InfoWidgetState extends State<InfoWidget> {
                                             _model.textFieldConfirmSenhaVisibility
                                                 ? Icons.visibility_outlined
                                                 : Icons.visibility_off_outlined,
+                                            color: Color(0xFF0F8F8A),
                                             size: 22,
                                           ),
                                         ),

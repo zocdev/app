@@ -5,6 +5,7 @@ import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'mensaje_antes_expediente_model.dart';
+import '/utils/zoc_logo.dart';
 export 'mensaje_antes_expediente_model.dart';
 
 class MensajeAntesExpedienteWidget extends StatefulWidget {
@@ -79,111 +80,64 @@ class _MensajeAntesExpedienteWidgetState
                     color: Colors.transparent,
                   ),
                 ),
-                child: Align(
-                  alignment: AlignmentDirectional(0.0, -1.0),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
                   child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            20.0, 0.0, 20.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Align(
-                              alignment: AlignmentDirectional(-1.0, -1.0),
-                              child: InkWell(
-                                splashColor: Colors.transparent,
-                                focusColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                onTap: () async {
-                                  context.pushNamed(LoginWidget.routeName);
-                                },
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  child: Image.asset(
-                                    'assets/images/ZOC.webp',
-                                    width: 90.0,
-                                    height: 80.0,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          InkWell(
+                            splashColor: Colors.transparent,
+                            focusColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            onTap: () async {
+                              context.pushNamed(LoginWidget.routeName);
+                            },
+                            child: const ZocLogo(
+                              width: 100.0,
+                              showTagline: false,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 36.0),
+                        child: Text(
+                          'Para garantir a produtividade e entender melhor seu fluxo de trabalho, pedimos que informe periodicamente em que está trabalhando. Esses dados nos ajudam a melhorar a organização e o suporte ao time.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w500,
+                            fontStyle: FontStyle.italic,
+                            color: const Color(0xFF344054),
+                            fontSize: 15.0,
+                            height: 1.55,
+                          ),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            0.0, 20.0, 0.0, 20.0),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Align(
-                              alignment: AlignmentDirectional(0.0, 0.0),
-                              child: Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    30.0, 30.0, 30.0, 0.0),
-                                child: Text(
-                                  'Para garantir a produtividade e entender \nmelhor seu fluxo de trabalho, pedimos que\n informe periodicamente em que está\n trabalhando. Esses dados nos ajudam a \nmelhorar a organização e o suporte ao time.',
-                                  textAlign: TextAlign.center,
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                        color: Color(0xFF101827),
-                                        fontSize: 15.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FontWeight.w500,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 0.0),
+                      const Spacer(),
+                      Center(
                         child: FFButtonWidget(
                           onPressed: () async {
                             context.pushNamed(LogoutWidget.routeName);
                           },
                           text: 'Ok',
                           options: FFButtonOptions(
-                            width: 60.0,
+                            width: 90.0,
                             height: 40.0,
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                16.0, 0.0, 16.0, 0.0),
-                            iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 0.0, 0.0, 0.0),
-                            color: Color(0xFF0F8F8A),
-                            textStyle: FlutterFlowTheme.of(context)
-                                .titleSmall
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .titleSmall
-                                        .fontStyle,
-                                  ),
-                                  color: Colors.white,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .titleSmall
-                                      .fontStyle,
-                                ),
+                            padding: EdgeInsets.zero,
+                            iconPadding: EdgeInsets.zero,
+                            color: const Color(0xFF0F8F8A),
+                            textStyle: GoogleFonts.inter(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 15.0,
+                            ),
                             elevation: 0.0,
-                            borderRadius: BorderRadius.circular(8.0),
+                            borderRadius: BorderRadius.circular(10.0),
                           ),
                         ),
                       ),

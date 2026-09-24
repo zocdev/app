@@ -4,6 +4,7 @@ import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import '/utils/api_error_helper.dart';
 import '/utils/error_handler.dart';
+import '/utils/screenshot_consent_dialog.dart';
 import 'dart:async';
 import '/index.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'verify_token_model.dart';
+import '/utils/zoc_logo.dart';
 export 'verify_token_model.dart';
 
 class VerifyTokenWidget extends StatefulWidget {
@@ -190,6 +192,12 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
       if (result == null) return;
 
       if (result.statusCode == 200) {
+        final approved = await showScreenshotConsentDialog(context);
+        if (!mounted) return;
+        if (!approved) {
+          await denyScreenshotConsentAndLogout(context);
+          return;
+        }
         context.goNamed(EntrarConSenhaWidget.routeName);
         return;
       }
@@ -388,14 +396,9 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
                           mainAxisSize: MainAxisSize.max,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: Image.asset(
-                                'assets/images/ZOC.webp',
-                                width: 90.0,
-                                height: 80.0,
-                                fit: BoxFit.contain,
-                              ),
+                            const ZocLogo(
+                              width: 100.0,
+                              showTagline: false,
                             ),
                             IconButton(
                               onPressed: () {

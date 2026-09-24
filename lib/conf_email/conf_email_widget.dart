@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'conf_email_model.dart';
+import '/utils/zoc_logo.dart';
 export 'conf_email_model.dart';
 
 class ConfEmailWidget extends StatefulWidget {
@@ -150,14 +151,9 @@ class _ConfEmailWidgetState extends State<ConfEmailWidget> {
                           children: [
                             Align(
                               alignment: AlignmentDirectional(-1.0, -1.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.asset(
-                                  'assets/images/ZOC.webp',
-                                  width: 90.0,
-                                  height: 80.0,
-                                  fit: BoxFit.contain,
-                                ),
+                              child: const ZocLogo(
+                                width: 100.0,
+                                showTagline: false,
                               ),
                             ),
                           ],

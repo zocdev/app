@@ -21,6 +21,8 @@ Future<void> checkAndPromptDesktopUpdate({
 
   if (!context.mounted) return;
 
+  const brand = Color(0xFF0F8F8A);
+
   final accepted = await showDialog<bool>(
     context: context,
     barrierDismissible: true,
@@ -40,10 +42,15 @@ Future<void> checkAndPromptDesktopUpdate({
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
+          style: TextButton.styleFrom(foregroundColor: brand),
           child: const Text('Depois'),
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(ctx).pop(true),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: brand,
+            foregroundColor: Colors.white,
+          ),
           child: const Text('Atualizar'),
         ),
       ],
@@ -55,12 +62,12 @@ Future<void> checkAndPromptDesktopUpdate({
   showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const AlertDialog(
+    builder: (_) => AlertDialog(
       content: Row(
         children: [
-          CircularProgressIndicator(),
-          SizedBox(width: 20),
-          Expanded(child: Text('Baixando atualização...')),
+          CircularProgressIndicator(color: brand),
+          const SizedBox(width: 20),
+          const Expanded(child: Text('Baixando atualização...')),
         ],
       ),
     ),

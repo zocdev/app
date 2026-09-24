@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'recover_password_model.dart';
+import '/utils/zoc_logo.dart';
 export 'recover_password_model.dart';
 
 class RecoverPasswordWidget extends StatefulWidget {
@@ -202,14 +203,9 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: Image.asset(
-                                'assets/images/ZOC.webp',
-                                width: 90.0,
-                                height: 80.0,
-                                fit: BoxFit.contain,
-                              ),
+                            const ZocLogo(
+                              width: 100.0,
+                              showTagline: false,
                             ),
                             InkWell(
                               splashColor: Colors.transparent,
@@ -349,6 +345,7 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                                 _model.passwordVisibility
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
+                                color: const Color(0xFF0F8F8A),
                                 size: 20.0,
                               ),
                             ),
@@ -398,6 +395,7 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
                                 _model.confirmPasswordVisibility
                                     ? Icons.visibility_outlined
                                     : Icons.visibility_off_outlined,
+                                color: const Color(0xFF0F8F8A),
                                 size: 20.0,
                               ),
                             ),

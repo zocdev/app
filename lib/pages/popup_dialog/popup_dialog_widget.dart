@@ -16,6 +16,7 @@ import 'popup_dialog_model.dart';
 export 'popup_dialog_model.dart';
 import '/desktop/popup_window.dart';
 import 'dart:async';
+import '/utils/zoc_logo.dart';
 
 class PopupDialogWidget extends StatefulWidget {
   const PopupDialogWidget({
@@ -159,15 +160,10 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                             alignment: AlignmentDirectional(-1.0, -1.0),
                             child: Padding(
                               padding: EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 20.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.asset(
-                                  'assets/images/ZOC.webp',
-                                  width: 90.0,
-                                  height: 80.0,
-                                  fit: BoxFit.contain,
-                                ),
+                                  0.0, 0.0, 0.0, 8.0),
+                              child: const ZocLogo(
+                                width: 100.0,
+                                showTagline: false,
                               ),
                             ),
                           ),
@@ -184,9 +180,9 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 .bodyMedium
                                 .fontStyle,
                           ),
-                          color: Color(0xFF101827),
-                          fontSize: 30.0,
-                          letterSpacing: 0.0,
+                          color: const Color(0xFF101827),
+                          fontSize: 22.0,
+                          letterSpacing: -0.2,
                           fontWeight: FontWeight.w600,
                           fontStyle:
                               FlutterFlowTheme.of(context).bodyMedium.fontStyle,
@@ -194,7 +190,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                   ),
                   Padding(
                     padding:
-                        EdgeInsetsDirectional.fromSTEB(0.0, 25.0, 0.0, 0.0),
+                        EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
                     child: FlutterFlowDropDown<String>(
                       controller: _model.clientDropDownValueController ??=
                           FormFieldController<String>(null),

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'logout_confirmado_model.dart';
+import '/utils/zoc_logo.dart';
 export 'logout_confirmado_model.dart';
 
 class LogoutConfirmadoWidget extends StatefulWidget {
@@ -78,133 +79,71 @@ class _LogoutConfirmadoWidgetState extends State<LogoutConfirmadoWidget> {
                     color: Colors.transparent,
                   ),
                 ),
-                child: Align(
-                  alignment: AlignmentDirectional(0.0, -1.0),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
                   child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            20.0, 0.0, 20.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Align(
-                              alignment: AlignmentDirectional(-1.0, -1.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.asset(
-                                  'assets/images/ZOC.webp',
-                                  width: 90.0,
-                                  height: 80.0,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          ZocLogo(
+                            width: 100.0,
+                            showTagline: false,
+                          ),
+                        ],
                       ),
+                      const Spacer(),
                       Column(
-                        mainAxisSize: MainAxisSize.max,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8.0),
+                            child: SvgPicture.asset(
+                              'assets/images/Vector_(2).svg',
+                              width: 64.0,
+                              height: 64.0,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(height: 24.0),
                           Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 20.0, 0.0, 0.0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8.0),
-                              child: SvgPicture.asset(
-                                'assets/images/Vector_(2).svg',
-                                width: 70.0,
-                                height: 70.2,
-                                fit: BoxFit.contain,
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text:
+                                        'Sua sessão foi encerrada. Caso precise acessar novamente, faça ',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF101827),
+                                      fontSize: 18.0,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'login',
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF0F8F8A),
+                                      fontSize: 18.0,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    mouseCursor: SystemMouseCursors.click,
+                                    recognizer: TapGestureRecognizer()
+                                      ..onTap = () async {
+                                        context.pushNamed(LoginWidget.routeName);
+                                      },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
-                      Align(
-                        alignment: AlignmentDirectional(0.0, 0.0),
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              30.0, 40.0, 30.0, 0.0),
-                          child: RichText(
-                            textScaler: MediaQuery.of(context).textScaler,
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text:
-                                      'Sua sessão foi encerrada. Caso precise acessar novamente, faça',
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: Color(0xFF101827),
-                                        fontSize: 20.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FontWeight.w500,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
-                                      ),
-                                ),
-                                TextSpan(
-                                  text: ' login',
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: Color(0xFF0F8F8A),
-                                        fontSize: 20.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FontWeight.w500,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
-                                      ),
-                                  mouseCursor: SystemMouseCursors.click,
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () async {
-                                      context.pushNamed(LoginWidget.routeName);
-                                    },
-                                )
-                              ],
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    fontSize: 20.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
+                      const Spacer(),
                     ],
                   ),
                 ),

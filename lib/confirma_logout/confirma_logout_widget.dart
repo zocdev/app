@@ -6,6 +6,7 @@ import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'confirma_logout_model.dart';
+import '/utils/zoc_logo.dart';
 export 'confirma_logout_model.dart';
 
 class ConfirmaLogoutWidget extends StatefulWidget {
@@ -78,190 +79,93 @@ class _ConfirmaLogoutWidgetState extends State<ConfirmaLogoutWidget> {
                     color: Colors.transparent,
                   ),
                 ),
-                child: Align(
-                  alignment: AlignmentDirectional(0.0, -1.0),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
                   child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            20.0, 0.0, 20.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Align(
-                              alignment: AlignmentDirectional(-1.0, -1.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.asset(
-                                  'assets/images/ZOC.webp',
-                                  width: 90.0,
-                                  height: 80.0,
-                                  fit: BoxFit.contain,
-                                ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          ZocLogo(
+                            width: 100.0,
+                            showTagline: false,
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Deseja realmente encerrar sua sessão?',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF101827),
+                          fontSize: 20.0,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 28.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FFButtonWidget(
+                            onPressed: () async {
+                              GoRouter.of(context).prepareAuthEvent();
+                              await authManager.signOut();
+                              GoRouter.of(context).clearRedirectLocation();
+
+                              context.goNamedAuth(
+                                  LogoutConfirmadoWidget.routeName,
+                                  context.mounted);
+
+                              FFAppState().UserData = null;
+                              FFAppState().dataSave = [];
+                              safeSetState(() {});
+                            },
+                            text: 'Confirmar',
+                            options: FFButtonOptions(
+                              width: 120.0,
+                              height: 40.0,
+                              padding: EdgeInsets.zero,
+                              iconPadding: EdgeInsets.zero,
+                              color: const Color(0xFF0F8F8A),
+                              textStyle: GoogleFonts.inter(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                                fontSize: 14.0,
                               ),
+                              elevation: 0.0,
+                              borderRadius: BorderRadius.circular(10.0),
                             ),
-                          ],
-                        ),
-                      ),
-                      Align(
-                        alignment: AlignmentDirectional(0.0, 0.0),
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 50.0, 0.0, 0.0),
-                          child: Text(
-                            'Deseja realmente encerrar sua\n sessão?',
-                            textAlign: TextAlign.center,
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  color: Color(0xFF101827),
-                                  fontSize: 20.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.w500,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
                           ),
-                        ),
-                      ),
-                      Align(
-                        alignment: AlignmentDirectional(0.0, 0.0),
-                        child: Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              70.0, 30.0, 70.0, 0.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Align(
-                                alignment: AlignmentDirectional(0.0, 0.0),
-                                child: Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 30.0, 0.0, 0.0),
-                                  child: FFButtonWidget(
-                                    onPressed: () async {
-                                      GoRouter.of(context).prepareAuthEvent();
-                                      await authManager.signOut();
-                                      GoRouter.of(context)
-                                          .clearRedirectLocation();
-
-                                      context.goNamedAuth(
-                                          LogoutConfirmadoWidget.routeName,
-                                          context.mounted);
-
-                                      FFAppState().UserData = null;
-                                      FFAppState().dataSave = [];
-                                      safeSetState(() {});
-                                    },
-                                    text: 'Confirmar',
-                                    options: FFButtonOptions(
-                                      width: 100.0,
-                                      height: 35.0,
-                                      padding: EdgeInsets.all(0.0),
-                                      iconPadding:
-                                          EdgeInsetsDirectional.fromSTEB(
-                                              0.0, 0.0, 0.0, 0.0),
-                                      color: Color(0xFF0F8F8A),
-                                      textStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .titleSmall
-                                                      .fontStyle,
-                                            ),
-                                            color: FlutterFlowTheme.of(context)
-                                                .secondaryBackground,
-                                            letterSpacing: 0.0,
-                                            fontWeight: FontWeight.w600,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .titleSmall
-                                                    .fontStyle,
-                                          ),
-                                      elevation: 0.0,
-                                      borderSide: BorderSide(
-                                        color: Color(0xB0D5F0EE),
-                                      ),
-                                      borderRadius: BorderRadius.only(
-                                        bottomLeft: Radius.circular(12.0),
-                                        bottomRight: Radius.circular(12.0),
-                                        topLeft: Radius.circular(14.0),
-                                        topRight: Radius.circular(12.0),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                          const SizedBox(width: 16.0),
+                          FFButtonWidget(
+                            onPressed: () async {
+                              context.safePop();
+                            },
+                            text: 'Cancelar',
+                            options: FFButtonOptions(
+                              width: 120.0,
+                              height: 40.0,
+                              padding: EdgeInsets.zero,
+                              iconPadding: EdgeInsets.zero,
+                              color: Colors.white,
+                              textStyle: GoogleFonts.inter(
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0F8F8A),
+                                fontSize: 14.0,
                               ),
-                              Align(
-                                alignment: AlignmentDirectional(0.0, 0.0),
-                                child: Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 30.0, 0.0, 0.0),
-                                  child: FFButtonWidget(
-                                    onPressed: () async {
-                                      context.safePop();
-                                    },
-                                    text: 'Cancelar',
-                                    options: FFButtonOptions(
-                                      width: 100.0,
-                                      height: 35.0,
-                                      padding: EdgeInsets.all(0.0),
-                                      iconPadding:
-                                          EdgeInsetsDirectional.fromSTEB(
-                                              0.0, 0.0, 0.0, 0.0),
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      textStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .titleSmall
-                                                      .fontStyle,
-                                            ),
-                                            color: Color(0xFF0F8F8A),
-                                            letterSpacing: 0.0,
-                                            fontWeight: FontWeight.w600,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .titleSmall
-                                                    .fontStyle,
-                                          ),
-                                      elevation: 0.0,
-                                      borderSide: BorderSide(
-                                        color: Color(0xFF0F8F8A),
-                                      ),
-                                      borderRadius: BorderRadius.only(
-                                        bottomLeft: Radius.circular(12.0),
-                                        bottomRight: Radius.circular(12.0),
-                                        topLeft: Radius.circular(14.0),
-                                        topRight: Radius.circular(12.0),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              elevation: 0.0,
+                              borderSide: const BorderSide(
+                                color: Color(0xFF0F8F8A),
+                                width: 1.5,
                               ),
-                            ],
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
+                      const Spacer(),
                     ],
                   ),
                 ),

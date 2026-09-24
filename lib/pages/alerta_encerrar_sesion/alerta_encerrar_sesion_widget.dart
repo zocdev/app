@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'alerta_encerrar_sesion_model.dart';
+import '/utils/zoc_logo.dart';
 export 'alerta_encerrar_sesion_model.dart';
 
 class AlertaEncerrarSesionWidget extends StatefulWidget {
@@ -71,14 +72,9 @@ class _AlertaEncerrarSesionWidgetState
                     Padding(
                       padding:
                           EdgeInsetsDirectional.fromSTEB(5.0, 2.0, 0.0, 0.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.asset(
-                          'assets/images/ZOC.webp',
-                          width: 90.0,
-                          height: 80.0,
-                          fit: BoxFit.contain,
-                        ),
+                      child: const ZocLogo(
+                        width: 100.0,
+                        showTagline: false,
                       ),
                     ),
                     Padding(
@@ -158,54 +154,31 @@ class _AlertaEncerrarSesionWidgetState
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Align(
-                      alignment: AlignmentDirectional(-1.0, 0.0),
-                      child: Padding(
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(1.0, 0.0, 10.0, 5.0),
-                        child: Text(
-                          'Sair da conta',
-                          style:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    fontSize: 16.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                        ),
-                      ),
-                    ),
-                    Align(
                       alignment: AlignmentDirectional(0.0, 0.0),
                       child: Padding(
                         padding:
                             EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 15.0),
-                        child: InkWell(
-                          splashColor: Colors.transparent,
-                          focusColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          onTap: () async {
-                            Navigator.pop(context);
+                        child: Tooltip(
+                          message: 'Sair da conta',
+                          child: InkWell(
+                            splashColor: Colors.transparent,
+                            focusColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            onTap: () async {
+                              Navigator.pop(context);
 
-                            context.goNamed(ConfirmaLogoutWidget.routeName);
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.asset(
-                              'assets/images/Logout_(1).svg',
-                              width: 32.0,
-                              height: 30.0,
-                              fit: BoxFit.contain,
-                              alignment: Alignment(0.0, 1.0),
+                              context.goNamed(ConfirmaLogoutWidget.routeName);
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: Image.asset(
+                                'assets/images/Logout_(1).svg',
+                                width: 32.0,
+                                height: 30.0,
+                                fit: BoxFit.contain,
+                                alignment: Alignment(0.0, 1.0),
+                              ),
                             ),
                           ),
                         ),

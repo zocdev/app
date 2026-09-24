@@ -13,6 +13,7 @@ import 'logout_model.dart';
 export 'logout_model.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
+import '/utils/zoc_logo.dart';
 
 class LogoutWidget extends StatefulWidget {
   const LogoutWidget({super.key});
@@ -138,6 +139,31 @@ class _LogoutWidgetState extends State<LogoutWidget> {
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
+    final rawFirstName = getJsonField(
+      FFAppState().UserData,
+      r'''$.user.first_name''',
+    )?.toString();
+    final rawLastName = getJsonField(
+      FFAppState().UserData,
+      r'''$.user.last_name''',
+    )?.toString();
+
+    String displayName = '';
+    if (rawFirstName != null && rawFirstName.isNotEmpty && rawFirstName != 'null') {
+      displayName = rawFirstName[0].toUpperCase() + rawFirstName.substring(1);
+      if (rawLastName != null && rawLastName.isNotEmpty && rawLastName != 'null') {
+        displayName += ' ${rawLastName[0].toUpperCase()}${rawLastName.substring(1)}';
+      }
+    } else {
+      displayName = 'Usuário';
+    }
+
+    final initial = displayName.trim().isNotEmpty
+        ? displayName.trim()[0].toUpperCase()
+        : 'U';
+
+    final email = FFAppState().email;
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -147,263 +173,149 @@ class _LogoutWidgetState extends State<LogoutWidget> {
         key: scaffoldKey,
         backgroundColor: Colors.transparent,
         body: SafeArea(
-          top: true,
           child: Align(
-            alignment: AlignmentDirectional(0.0, 0.0),
-            child: SafeArea(
-              child: Container(
-                width: 500.0,
-                height: 400.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 4.0,
-                      color: Color(0x33000000),
-                      offset: Offset(
-                        0.0,
-                        2.0,
-                      ),
-                    )
-                  ],
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(0.0),
-                    bottomRight: Radius.circular(0.0),
-                    topLeft: Radius.circular(0.0),
-                    topRight: Radius.circular(0.0),
-                  ),
-                  border: Border.all(
-                    color: Colors.transparent,
-                  ),
-                ),
-                child: Align(
-                  alignment: AlignmentDirectional(0.0, -1.0),
-                  child: Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(20.0, 0.0, 20.0, 0.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.start,
+            alignment: Alignment.center,
+            child: Container(
+              width: 500.0,
+              height: 400.0,
+              decoration: BoxDecoration(
+                color: FlutterFlowTheme.of(context).secondaryBackground,
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 4.0,
+                    color: Color(0x33000000),
+                    offset: Offset(0.0, 2.0),
+                  )
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24.0, 20.0, 20.0, 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 0.0, 20.0, 15.0),
+                        const ZocLogo(
+                          width: 100.0,
+                          showTagline: false,
+                        ),
+                        Tooltip(
+                          message: 'Ver Registro',
+                          child: FlutterFlowIconButton(
+                            borderRadius: 8.0,
+                            buttonSize: 40.0,
+                            fillColor: FlutterFlowTheme.of(context)
+                                .secondaryBackground,
+                            icon: const Icon(
+                              Icons.assignment_turned_in_outlined,
+                              color: Color(0xFF0F8F8A),
+                              size: 24.0,
+                            ),
+                            onPressed: () async {
+                              context.pushNamed(ExpedienteWidget.routeName);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72.0,
+                          height: 72.0,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F6F5),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF0F8F8A).withOpacity(0.35),
+                              width: 2.0,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            initial,
+                            style: GoogleFonts.inter(
+                              fontSize: 28.0,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F8F8A),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14.0),
+                        Text(
+                          displayName,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 22.0,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF101827),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 10.0),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14.0,
+                            vertical: 6.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(20.0),
+                            border: Border.all(
+                              color: const Color(0xFFE5E7EB),
+                              width: 1.0,
+                            ),
+                          ),
                           child: Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Align(
-                                alignment: AlignmentDirectional(-1.0, -1.0),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  child: Image.asset(
-                                    'assets/images/ZOC.webp',
-                                    width: 90.0,
-                                    height: 80.0,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
+                              const Icon(
+                                Icons.mail_outline_rounded,
+                                size: 14.0,
+                                color: Color(0xFF6B7280),
                               ),
-                              InkWell(
-                                splashColor: Colors.transparent,
-                                focusColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                onTap: () async {
-                                  context.pushNamed(ExpedienteWidget.routeName);
-                                },
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 5.0, 0.0),
-                                      child: Text(
-                                        'Ver Registro',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w600,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .fontStyle,
-                                              ),
-                                              color: Color(0xFF101827),
-                                              fontSize: 14.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 5.0, 0.0),
-                                      child: ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                        child: Image.asset(
-                                          'assets/images/aprovar.png',
-                                          width: 30.0,
-                                          height: 30.0,
-                                          fit: BoxFit.fill,
-                                          alignment: Alignment(1.0, -1.0),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(width: 6.0),
+                              Text(
+                                email.isNotEmpty ? email : '---',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.0,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF4B5563),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Align(
-                          alignment: AlignmentDirectional(0.0, 0.0),
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 50.0, 0.0, 0.0),
-                            child: Text(
-                              getJsonField(
-                                FFAppState().UserData,
-                                r'''$.user.first_name''',
-                              ).toString(),
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    fontSize: 20.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Tooltip(
+                          message: 'Sair da conta',
+                          child: FlutterFlowIconButton(
+                            borderRadius: 8.0,
+                            buttonSize: 40.0,
+                            fillColor: FlutterFlowTheme.of(context)
+                                .secondaryBackground,
+                            icon: const Icon(
+                              Icons.login,
+                              color: Color(0xFF0F8F8A),
+                              size: 24.0,
                             ),
-                          ),
-                        ),
-                        Align(
-                          alignment: AlignmentDirectional(0.0, 0.0),
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 25.0, 0.0, 0.0),
-                            child: FFButtonWidget(
-                              onPressed: () {
-                                print('Button pressed ...');
-                              },
-                              text: FFAppState().email,
-                              options: FFButtonOptions(
-                                width: 297.0,
-                                height: 30.0,
-                                padding: EdgeInsets.all(5.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: Color(0xFF0F8F8A),
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w500,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .fontStyle,
-                                      ),
-                                      color: FlutterFlowTheme.of(context)
-                                          .secondaryBackground,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                elevation: 0.0,
-                                borderSide: BorderSide(
-                                  color: Color(0xB0D5F0EE),
-                                ),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(12.0),
-                                  bottomRight: Radius.circular(12.0),
-                                  topLeft: Radius.circular(12.0),
-                                  topRight: Radius.circular(12.0),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Align(
-                          alignment: AlignmentDirectional(1.0, 1.0),
-                          child: Padding(
-                            padding: EdgeInsetsDirectional.fromSTEB(
-                                0.0, 110.0, 0.0, 0.0),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Align(
-                                  alignment: AlignmentDirectional(-1.0, 0.0),
-                                  child: Padding(
-                                    padding: EdgeInsetsDirectional.fromSTEB(
-                                        0.0, 0.0, 5.0, 0.0),
-                                    child: Text(
-                                      'Sair da conta',
-                                      style: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .override(
-                                            font: GoogleFonts.inter(
-                                              fontWeight: FontWeight.w500,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .fontStyle,
-                                            ),
-                                            color: Color(0xFF101827),
-                                            fontSize: 14.0,
-                                            letterSpacing: 0.0,
-                                            fontWeight: FontWeight.w500,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontStyle,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                                FlutterFlowIconButton(
-                                  borderRadius: 8.0,
-                                  buttonSize: 40.0,
-                                  fillColor: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  icon: Icon(
-                                    Icons.login,
-                                    color: Color(0xFF0F8F8A),
-                                    size: 24.0,
-                                  ),
-                                  onPressed: () async {
-                                    context.pushNamed(
-                                        ConfirmaLogoutWidget.routeName);
-                                  },
-                                ),
-                              ],
-                            ),
+                            onPressed: () async {
+                              context.pushNamed(ConfirmaLogoutWidget.routeName);
+                            },
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

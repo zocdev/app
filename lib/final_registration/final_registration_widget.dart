@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'final_registration_model.dart';
+import '/utils/zoc_logo.dart';
 export 'final_registration_model.dart';
 
 class FinalRegistrationWidget extends StatefulWidget {
@@ -95,14 +96,9 @@ class _FinalRegistrationWidgetState extends State<FinalRegistrationWidget> {
                           children: [
                             Align(
                               alignment: AlignmentDirectional(-1.0, -1.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: Image.asset(
-                                  'assets/images/ZOC.webp',
-                                  width: 90.0,
-                                  height: 80.0,
-                                  fit: BoxFit.contain,
-                                ),
+                              child: const ZocLogo(
+                                width: 100.0,
+                                showTagline: false,
                               ),
                             ),
                           ],

@@ -339,6 +339,26 @@ class _MyAppState extends State<MyApp> with WindowListener {
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,
+        primaryColor: const Color(0xFF0F8F8A),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF0F8F8A),
+          secondary: Color(0xFF0F8F8A),
+        ),
+        iconTheme: const IconThemeData(color: Color(0xFF0F8F8A)),
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Color(0xFF0F8F8A),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFF0F8F8A),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0F8F8A),
+            foregroundColor: Colors.white,
+          ),
+        ),
       ),
       themeMode: _themeMode,
       routerConfig: _router,
