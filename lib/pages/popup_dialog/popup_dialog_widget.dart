@@ -654,13 +654,58 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                             safeSetState(() => _model.validate = false);
                             return;
                           }
-                          if (_model.clientDropDownValue == null) {
+                          if (_model.clientDropDownValue == null ||
+                              _model.clientDropDownValue!.isEmpty) {
                             await showDialog(
                               context: context,
                               builder: (alertDialogContext) {
                                 return AlertDialog(
                                   title: Text('Atenção'),
                                   content: Text('Cliente é necessario.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(alertDialogContext),
+                                      child: Text('Ok'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            _model.validate = false;
+                            safeSetState(() {});
+                            return;
+                          }
+                          if (_model.dropdownprojetosValue == null ||
+                              _model.dropdownprojetosValue!.isEmpty) {
+                            await showDialog(
+                              context: context,
+                              builder: (alertDialogContext) {
+                                return AlertDialog(
+                                  title: Text('Atenção'),
+                                  content: Text('Projeto é necessario.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(alertDialogContext),
+                                      child: Text('Ok'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            _model.validate = false;
+                            safeSetState(() {});
+                            return;
+                          }
+                          if (_model.dropdownatividadesValue == null ||
+                              _model.dropdownatividadesValue!.isEmpty) {
+                            await showDialog(
+                              context: context,
+                              builder: (alertDialogContext) {
+                                return AlertDialog(
+                                  title: Text('Atenção'),
+                                  content: Text('Tarefa é necessario.'),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
