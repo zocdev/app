@@ -14,6 +14,7 @@ import '/utils/api_error_helper.dart';
 import '/utils/error_handler.dart';
 import '/utils/screenshot_consent_dialog.dart';
 import '/utils/zoc_logo.dart';
+import '/utils/disclaimer_banner.dart';
 export 'login_model.dart';
 
 
@@ -89,7 +90,16 @@ class _LoginWidgetState extends State<LoginWidget> {
             ),
           ),
           child: SafeArea(
-            child: Align(
+            child: Stack(
+              children: [
+                Align(
+                  alignment: AlignmentDirectional(0.0, 1.0),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: DisclaimerBanner(),
+                  ),
+                ),
+                Align(
               alignment: AlignmentDirectional(0.0, 0.0),
               child: SizedBox(
                 width: 500.0,
@@ -347,6 +357,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                                         final approved =
                                             await showScreenshotConsentDialog(
                                           context,
+                                          screenshotsEnabled:
+                                              result.screenshotsEnabled,
                                         );
                                         if (!context.mounted) return;
                                         if (!approved) {
@@ -389,6 +401,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                   ),
                 ),
               ),
+            ),
+              ],
             ),
           ),
         ),

@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   bitsdojo_window_linux
   file_saver
+  flutter_secure_storage_linux
   gtk
   printing
   screen_capturer_linux

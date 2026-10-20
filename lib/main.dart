@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:system_tray/system_tray.dart';
+import 'dart:async' show Timer;
 import 'dart:io' show Platform, exit;
 
 import 'auth/auth_session.dart';
@@ -116,7 +117,7 @@ void main() async {
         MenuItemLabel(
           label: 'Cerrar sesión',
           onClicked: (menuItem) async {
-            await authManager.signOut();
+            await AuthSession.logout();
             FFAppState().UserData = null;
             FFAppState().email = '';
             FFAppState().isPopupVisible = false;
@@ -195,6 +196,26 @@ class _MyAppState extends State<MyApp> with WindowListener {
   DateTime? _lastBlurTime;
   bool _isDialogOpen = false;
 
+  // Desktop auto-update: re-checked on window focus and on a timer so a
+  // long-lived session (no restart) still picks up new releases.
+  static const Duration _updateCheckInterval = Duration(hours: 6);
+  DateTime? _lastUpdateCheck;
+  Timer? _updateCheckTimer;
+
+  void _maybeCheckForDesktopUpdate() {
+    if (kIsWeb || !(Platform.isWindows || Platform.isMacOS)) return;
+    final now = DateTime.now();
+    if (_lastUpdateCheck != null &&
+        now.difference(_lastUpdateCheck!) < _updateCheckInterval) {
+      return;
+    }
+    _lastUpdateCheck = now;
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      checkAndPromptDesktopUpdate(context: context);
+    }
+  }
+
   void setDialogOpen(bool isOpen) => safeSetState(() => _isDialogOpen = isOpen);
 
   String getRoute([RouteMatch? routeMatch]) {
@@ -263,6 +284,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
       if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          _lastUpdateCheck = DateTime.now();
           final context = navigatorKey.currentContext;
           if (context != null) {
             checkAndPromptDesktopUpdate(context: context);
@@ -273,6 +295,10 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
       windowManager.addListener(this);
+      _updateCheckTimer = Timer.periodic(
+        _updateCheckInterval,
+        (_) => _maybeCheckForDesktopUpdate(),
+      );
     }
   }
 
@@ -280,6 +306,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
   void dispose() {
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
       windowManager.removeListener(this);
+      _updateCheckTimer?.cancel();
     }
     super.dispose();
   }
@@ -289,6 +316,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
     if (_lastBlurTime != null) {
       DateTime.now().difference(_lastBlurTime!);
     }
+    _maybeCheckForDesktopUpdate();
   }
 
   @override

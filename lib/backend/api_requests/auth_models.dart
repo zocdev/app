@@ -101,17 +101,20 @@ class VerifyEmailResponse {
     required this.firstTime,
     required this.exists,
     required this.verified,
+    this.screenshotsEnabled = true,
   });
 
   final bool firstTime;
   final bool exists;
   final bool verified;
+  final bool screenshotsEnabled;
 
   factory VerifyEmailResponse.fromJson(Map<String, dynamic> json) =>
       VerifyEmailResponse(
         firstTime: json['first_time'] as bool? ?? false,
         exists: json['exists'] as bool? ?? false,
         verified: json['verified'] as bool? ?? false,
+        screenshotsEnabled: json['screenshots_enabled'] as bool? ?? true,
       );
 }
 

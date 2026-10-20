@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   bitsdojo_window_windows
   file_saver
+  flutter_secure_storage_windows
   just_audio_windows
   printing
   screen_capturer_windows

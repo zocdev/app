@@ -133,7 +133,6 @@ jobs:
             version = $version
             notes = "Release $tag"
             windows = "$base/Zoc-windows-x64.zip"
-            macos = "$base/Zoc-macos.zip"
           } | ConvertTo-Json | Out-File -FilePath latest.json -Encoding utf8NoBOM
 
       - name: Adjuntar archivos al GitHub Release

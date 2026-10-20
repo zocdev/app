@@ -66,6 +66,53 @@ class LoginCall {
   }
 }
 
+class GetMeCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetMe',
+      apiUrl: '${getBaseApiUrl()}/api/v1/auth/me',
+      callType: ApiCallType.GET,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class GetOrgUserByAuthCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+    String? authId = '',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetOrgUserByAuth',
+      apiUrl: '${getBaseApiUrl()}/api/v1/users/org/auth/$authId',
+      callType: ApiCallType.GET,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class AddAtivitiesCall {
   static Future<ApiCallResponse> call({
     List<String>? tasksList,

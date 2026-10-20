@@ -9,6 +9,7 @@ class LogoutModel extends FlutterFlowModel<LogoutWidget> {
   ///  State fields for stateful widgets in this page.
 
   InstantTimer? FirstTimer;
+  InstantTimer? pollTimer;
   // Stores action output result for [Backend Call - API (AddAtivities)] action in Logout widget.
   ApiCallResponse? apiResult4ww;
 
@@ -18,5 +19,6 @@ class LogoutModel extends FlutterFlowModel<LogoutWidget> {
   @override
   void dispose() {
     FirstTimer?.cancel();
+    pollTimer?.cancel();
   }
 }

@@ -9,6 +9,7 @@
 #include <app_links/app_links_plugin_c_api.h>
 #include <bitsdojo_window_windows/bitsdojo_window_plugin.h>
 #include <file_saver/file_saver_plugin.h>
+#include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
 #include <just_audio_windows/just_audio_windows_plugin.h>
 #include <printing/printing_plugin.h>
 #include <screen_capturer_windows/screen_capturer_windows_plugin_c_api.h>
@@ -24,6 +25,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("BitsdojoWindowPlugin"));
   FileSaverPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FileSaverPlugin"));
+  FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
   JustAudioWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("JustAudioWindowsPlugin"));
   PrintingPluginRegisterWithRegistrar(

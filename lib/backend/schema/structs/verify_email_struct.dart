@@ -10,9 +10,11 @@ class VerifyEmailStruct extends BaseStruct {
     bool? firstTime,
     bool? exists,
     bool? verified,
+    bool? screenshotsEnabled,
   })  : _firstTime = firstTime,
         _exists = exists,
-        _verified = verified;
+        _verified = verified,
+        _screenshotsEnabled = screenshotsEnabled;
 
   // "first_time" field.
   bool? _firstTime;
@@ -35,11 +37,19 @@ class VerifyEmailStruct extends BaseStruct {
 
   bool hasVerified() => _verified != null;
 
+  // "screenshots_enabled" field.
+  bool? _screenshotsEnabled;
+  bool get screenshotsEnabled => _screenshotsEnabled ?? true;
+  set screenshotsEnabled(bool? val) => _screenshotsEnabled = val;
+
+  bool hasScreenshotsEnabled() => _screenshotsEnabled != null;
+
   static VerifyEmailStruct fromMap(Map<String, dynamic> data) =>
       VerifyEmailStruct(
         firstTime: data['first_time'] as bool?,
         exists: data['exists'] as bool?,
         verified: data['verified'] as bool?,
+        screenshotsEnabled: data['screenshots_enabled'] as bool?,
       );
 
   static VerifyEmailStruct? maybeFromMap(dynamic data) => data is Map
@@ -50,6 +60,7 @@ class VerifyEmailStruct extends BaseStruct {
         'first_time': _firstTime,
         'exists': _exists,
         'verified': _verified,
+        'screenshots_enabled': _screenshotsEnabled,
       }.withoutNulls;
 
   @override
@@ -64,6 +75,10 @@ class VerifyEmailStruct extends BaseStruct {
         ),
         'verified': serializeParam(
           _verified,
+          ParamType.bool,
+        ),
+        'screenshots_enabled': serializeParam(
+          _screenshotsEnabled,
           ParamType.bool,
         ),
       }.withoutNulls;
@@ -85,6 +100,11 @@ class VerifyEmailStruct extends BaseStruct {
           ParamType.bool,
           false,
         ),
+        screenshotsEnabled: deserializeParam(
+          data['screenshots_enabled'],
+          ParamType.bool,
+          false,
+        ),
       );
 
   @override
@@ -95,20 +115,24 @@ class VerifyEmailStruct extends BaseStruct {
     return other is VerifyEmailStruct &&
         firstTime == other.firstTime &&
         exists == other.exists &&
-        verified == other.verified;
+        verified == other.verified &&
+        screenshotsEnabled == other.screenshotsEnabled;
   }
 
   @override
-  int get hashCode => const ListEquality().hash([firstTime, exists, verified]);
+  int get hashCode =>
+      const ListEquality().hash([firstTime, exists, verified, screenshotsEnabled]);
 }
 
 VerifyEmailStruct createVerifyEmailStruct({
   bool? firstTime,
   bool? exists,
   bool? verified,
+  bool? screenshotsEnabled,
 }) =>
     VerifyEmailStruct(
       firstTime: firstTime,
       exists: exists,
       verified: verified,
+      screenshotsEnabled: screenshotsEnabled,
     );

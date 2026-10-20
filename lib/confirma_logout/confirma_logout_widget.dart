@@ -1,4 +1,4 @@
-import '/auth/custom_auth/auth_util.dart';
+import '/auth/auth_session.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
@@ -111,7 +111,7 @@ class _ConfirmaLogoutWidgetState extends State<ConfirmaLogoutWidget> {
                           FFButtonWidget(
                             onPressed: () async {
                               GoRouter.of(context).prepareAuthEvent();
-                              await authManager.signOut();
+                              await AuthSession.logout();
                               GoRouter.of(context).clearRedirectLocation();
 
                               context.goNamedAuth(

@@ -192,7 +192,15 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
       if (result == null) return;
 
       if (result.statusCode == 200) {
-        final approved = await showScreenshotConsentDialog(context);
+        bool? screenshotsEnabled;
+        final emailData = FFAppState().emailData;
+        if (emailData is Map && emailData['screenshots_enabled'] is bool) {
+          screenshotsEnabled = emailData['screenshots_enabled'] as bool;
+        }
+        final approved = await showScreenshotConsentDialog(
+          context,
+          screenshotsEnabled: screenshotsEnabled,
+        );
         if (!mounted) return;
         if (!approved) {
           await denyScreenshotConsentAndLogout(context);

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class SecureStorageService {
@@ -12,8 +13,11 @@ class SecureStorageService {
   bool _initialized = false;
 
   static const String _hiveBoxName = 'zoc_app_storage';
+  static const String _encryptionKeyName = 'zoc_app_storage_key';
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(milliseconds: 100);
+
+  static const FlutterSecureStorage _keyStorage = FlutterSecureStorage();
 
   bool get isInitialized => _initialized;
 
@@ -25,12 +29,26 @@ class SecureStorageService {
     _log('Hive storage initialized');
   }
 
+  Future<List<int>> _getOrCreateEncryptionKey() async {
+    final existing = await _keyStorage.read(key: _encryptionKeyName);
+    if (existing != null) {
+      return base64Url.decode(existing);
+    }
+
+    final newKey = Hive.generateSecureKey();
+    await _keyStorage.write(key: _encryptionKeyName, value: base64UrlEncode(newKey));
+    return newKey;
+  }
+
   Future<void> _initializeHive() async {
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
+        final encryptionKey = await _getOrCreateEncryptionKey();
+        final cipher = HiveAesCipher(encryptionKey);
+
         if (!Hive.isBoxOpen(_hiveBoxName)) {
           await Hive.initFlutter();
-          _hiveBox = await Hive.openBox(_hiveBoxName);
+          _hiveBox = await Hive.openBox(_hiveBoxName, encryptionCipher: cipher);
         } else {
           _hiveBox = Hive.box(_hiveBoxName);
         }

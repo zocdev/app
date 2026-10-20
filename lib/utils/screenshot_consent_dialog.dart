@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '/auth/custom_auth/auth_util.dart';
-import '/backend/api_requests/api_manager.dart';
+import '/auth/auth_session.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '/utils/capture_screenshot.dart';
 
-Future<bool> showScreenshotConsentDialog(BuildContext context) async {
+Future<bool> showScreenshotConsentDialog(
+  BuildContext context, {
+  bool? screenshotsEnabled,
+}) async {
+  if (!areScreenshotsEnabled(override: screenshotsEnabled)) {
+    return true;
+  }
+
   final approved = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
@@ -67,9 +74,8 @@ Future<bool> showScreenshotConsentDialog(BuildContext context) async {
 
 Future<void> denyScreenshotConsentAndLogout(BuildContext context) async {
   GoRouter.of(context).prepareAuthEvent();
-  await authManager.signOut();
+  await AuthSession.logout();
   GoRouter.of(context).clearRedirectLocation();
-  ApiManager.syncAccessToken(null);
 
   FFAppState().UserData = null;
   FFAppState().email = '';

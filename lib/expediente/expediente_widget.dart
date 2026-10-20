@@ -17,6 +17,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '/utils/disclaimer_banner.dart';
 import 'expediente_model.dart';
 export 'expediente_model.dart';
 import 'package:window_manager/window_manager.dart';
@@ -1729,6 +1730,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                             ),
                           ),
                         ),
+                        DisclaimerBanner(),
                       ]
                           .divide(SizedBox(height: 10.0))
                           .addToStart(SizedBox(height: 10.0))
