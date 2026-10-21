@@ -17,6 +17,7 @@ let package = Package(
     dependencies: [
         .package(name: "app_links", path: "../.packages/app_links-7.0.0"),
         .package(name: "audio_session", path: "../.packages/audio_session-0.2.4"),
+        .package(name: "integration_test", path: "../.packages/integration_test"),
         .package(name: "just_audio", path: "../.packages/just_audio-0.10.6"),
         .package(name: "package_info_plus", path: "../.packages/package_info_plus-8.3.1"),
         .package(name: "shared_preferences_foundation", path: "../.packages/shared_preferences_foundation-2.5.6"),
@@ -31,6 +32,7 @@ let package = Package(
             dependencies: [
                 .product(name: "app-links", package: "app_links"),
                 .product(name: "audio-session", package: "audio_session"),
+                .product(name: "integration-test", package: "integration_test"),
                 .product(name: "just-audio", package: "just_audio"),
                 .product(name: "package-info-plus", package: "package_info_plus"),
                 .product(name: "shared-preferences-foundation", package: "shared_preferences_foundation"),
