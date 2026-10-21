@@ -982,6 +982,12 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                                   }
                                   _model.endDate = _model.datePicked2;
                                   safeSetState(() {});
+                                  // Range queries need both dates; otherwise the
+                                  // API gets the literal "null" and returns 500.
+                                  if (_model.initDate == null ||
+                                      _model.endDate == null) {
+                                    return;
+                                  }
                                   await Future.wait([
                                     Future(() async {
                                       _model.getInitAndEndWorkedHours =
