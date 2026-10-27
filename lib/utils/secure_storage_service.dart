@@ -17,7 +17,12 @@ class SecureStorageService {
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(milliseconds: 100);
 
-  static const FlutterSecureStorage _keyStorage = FlutterSecureStorage();
+  // macOS: the data protection keychain needs a keychain-access-groups
+  // entitlement and a signing team; ad-hoc signed builds fail with -34018.
+  // The legacy file-based login keychain works without either.
+  static const FlutterSecureStorage _keyStorage = FlutterSecureStorage(
+    mOptions: MacOsOptions(useDataProtectionKeyChain: false),
+  );
 
   bool get isInitialized => _initialized;
 
