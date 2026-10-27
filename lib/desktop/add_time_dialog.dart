@@ -91,6 +91,7 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
   String? _error;
   bool _loading = true;
   bool _busy = false;
+  final _clientController = FormFieldController<String>(null);
   final _projectController = FormFieldController<String>(null);
   final _taskController = FormFieldController<String>(null);
   late DateTime _start;
@@ -109,6 +110,7 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
 
   @override
   void dispose() {
+    _clientController.dispose();
     _projectController.dispose();
     _taskController.dispose();
     _duration.dispose();
@@ -124,6 +126,10 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
       _loading = false;
       if (response.succeeded && response.jsonBody is Map) {
         _workspace = Map<String, dynamic>.from(response.jsonBody);
+        final clients = _clients;
+        if (clients.length == 1) {
+          _clientController.value = '${clients.first['id']}';
+        }
       } else {
         _error = _apiMessage(response, 'Não foi possível carregar os projetos.');
       }
@@ -132,6 +138,19 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
 
   List<Map> _list(String key) =>
       ((_workspace?[key] as List?) ?? const []).whereType<Map>().toList();
+
+  // Projects of different clients may share a name, so the client is picked
+  // first, as in the popup. Older APIs send no client: then it is skipped.
+  List<Map> get _clients {
+    final byId = <String, Map>{};
+    for (final p in _list('projects')) {
+      if (p['client_id'] != null) {
+        byId.putIfAbsent('${p['client_id']}',
+            () => {'id': p['client_id'], 'name': p['client_name'] ?? ''});
+      }
+    }
+    return byId.values.toList();
+  }
 
   bool get _isAdmin => _workspace?['is_admin'] == true;
 
@@ -332,17 +351,36 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
   }
 
   List<Widget> _form(FlutterFlowTheme theme) {
+    final clients = _clients;
+    final client = _clientController.value;
+    final projects = _list('projects')
+        .where((p) => clients.isEmpty || '${p['client_id']}' == client);
     final project = _projectController.value;
     final tasks = _list('tasks').where((t) => t['project_id'] == project);
     return [
       const SizedBox(height: 16.0),
-      _dropDown(
-        key: const ValueKey('add-time-project'),
-        controller: _projectController,
-        options: _list('projects'),
-        hint: 'Escolha o projeto',
-        onChanged: (_) => setState(() => _taskController.value = null),
-      ),
+      if (clients.isNotEmpty) ...[
+        _dropDown(
+          key: const ValueKey('add-time-client'),
+          controller: _clientController,
+          options: clients,
+          hint: 'Escolha o cliente',
+          onChanged: (_) => setState(() {
+            _projectController.value = null;
+            _taskController.value = null;
+          }),
+        ),
+        const SizedBox(height: 15.0),
+      ],
+      if (clients.isEmpty || client != null)
+        _dropDown(
+          key: ValueKey(
+              client == null ? 'add-time-project' : 'add-time-project-$client'),
+          controller: _projectController,
+          options: projects.toList(),
+          hint: 'Escolha o projeto',
+          onChanged: (_) => setState(() => _taskController.value = null),
+        ),
       if (project != null) ...[
         const SizedBox(height: 15.0),
         _dropDown(
