@@ -16,6 +16,7 @@ import 'logout_model.dart';
 export 'logout_model.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
+import '/utils/time_tracking.dart';
 import '/utils/zoc_logo.dart';
 
 class LogoutWidget extends StatefulWidget {
@@ -156,6 +157,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
         ...freshUser,
       };
       FFAppState().UserData = userData;
+      safeSetState(() {});
 
       final newPeriod = _parsePeriod(freshUser['monitoring_period']);
       if (newPeriod == _periodMinutes) return;
@@ -216,6 +218,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
   Future<void> _runPopupCycle() async {
     if (!mounted) return;
     if (FFAppState().isPopupVisible) return;
+    if (!isTimeTrackingEnabled()) return;
 
     final periodForPopup = _periodMinutes;
     print('Timer disparado com intervalo de $periodForPopup minutos!');
@@ -432,6 +435,18 @@ class _LogoutWidgetState extends State<LogoutWidget>
                             ],
                           ),
                         ),
+                        if (!isTimeTrackingEnabled()) ...[
+                          const SizedBox(height: 10.0),
+                          Text(
+                            'Controle de tempo desativado pelo administrador',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFFB45309),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const Spacer(),

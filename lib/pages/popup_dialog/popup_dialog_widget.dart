@@ -733,7 +733,9 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                             screenshot: widget.screenshotBase64,
                           );
 
-                          if ((_model.apiResult4ww?.succeeded ?? true)) {
+                          // 403: admin turned time tracking off while the popup was open.
+                          if ((_model.apiResult4ww?.succeeded ?? true) ||
+                              _model.apiResult4ww?.statusCode == 403) {
                             FFAppState().isPopupVisible = false;
                             Navigator.pop(context);
                           } else {
