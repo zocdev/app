@@ -18,6 +18,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '/utils/disclaimer_banner.dart';
+import '/desktop/add_time_dialog.dart';
 import 'expediente_model.dart';
 export 'expediente_model.dart';
 import 'package:window_manager/window_manager.dart';
@@ -300,6 +301,26 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                               Row(
                                 mainAxisSize: MainAxisSize.max,
                                 children: [
+                                  Padding(
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        0.0, 0.0, 10.0, 0.0),
+                                    child: Tooltip(
+                                      message: 'Registrar tempo',
+                                      child: FlutterFlowIconButton(
+                                        key: const ValueKey('add-time-open'),
+                                        borderRadius: 8.0,
+                                        buttonSize: 30.0,
+                                        fillColor: Color(0xFF0F8F8A),
+                                        icon: Icon(
+                                          Icons.more_time,
+                                          color: Colors.white,
+                                          size: 16.0,
+                                        ),
+                                        onPressed: () =>
+                                            showAddTimeDialog(context),
+                                      ),
+                                    ),
+                                  ),
                                   Align(
                                     alignment: AlignmentDirectional(0.0, 0.0),
                                     child: Padding(

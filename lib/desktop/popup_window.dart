@@ -10,16 +10,6 @@ bool get isDesktopWindow =>
     (defaultTargetPlatform == TargetPlatform.windows ||
         defaultTargetPlatform == TargetPlatform.macOS);
 
-/// Captured on the first [prepareDesktopWindowForPopup] of a popup cycle.
-/// `prepare`/`restore` can run twice (host + dialog), so only the first
-/// visibility check is kept.
-bool? _wasHiddenBeforePopup;
-
-Future<bool> _isHiddenOrMinimized() async {
-  if (!await windowManager.isVisible()) return true;
-  return windowManager.isMinimized();
-}
-
 /// Shows a tray-hidden window so Flutter can receive clicks again.
 ///
 /// Close-to-tray uses `SW_HIDE`. Showing via bitsdojo (or a timer) can make
@@ -28,7 +18,6 @@ Future<bool> _isHiddenOrMinimized() async {
 Future<void> prepareDesktopWindowForPopup() async {
   if (!isDesktopWindow) return;
   try {
-    _wasHiddenBeforePopup ??= await _isHiddenOrMinimized();
     await windowManager.show();
     await windowManager.restore();
     await windowManager.setSkipTaskbar(false);
@@ -39,14 +28,24 @@ Future<void> prepareDesktopWindowForPopup() async {
   } catch (_) {}
 }
 
+/// Sends the window back to the tray once the popup closes, so answering it
+/// never leaves the main (Registro) screen on top of the user's work.
+/// macOS has no tray icon, so it minimizes to the Dock instead.
 Future<void> restoreDesktopWindowAfterPopup() async {
   if (!isDesktopWindow) return;
   try {
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSize(kDesktopWindowSize);
-    if (_wasHiddenBeforePopup == true) {
-      await windowManager.hide();
-    }
-    _wasHiddenBeforePopup = null;
+    await hideDesktopWindow();
   } catch (_) {}
+}
+
+/// Windows hides to the tray. macOS has no tray icon (see main.dart), so a
+/// hidden window could never be reopened: minimize to the Dock instead.
+Future<void> hideDesktopWindow() async {
+  if (defaultTargetPlatform == TargetPlatform.macOS) {
+    await windowManager.minimize();
+  } else {
+    await windowManager.hide();
+  }
 }

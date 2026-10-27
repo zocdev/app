@@ -326,7 +326,10 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
   @override
   void onWindowMinimize() {
-    if (!_isDialogOpen && !FFAppState().isPopupVisible) {
+    // Only Windows has a tray icon to bring a hidden window back.
+    if (Platform.isWindows &&
+        !_isDialogOpen &&
+        !FFAppState().isPopupVisible) {
       windowManager.hide();
     }
   }

@@ -539,6 +539,72 @@ class IgnoredPopUpsCall {
   }
 }
 
+/// Projects, tasks and the caller's org user id for manual time entries.
+class TimeRequestWorkspaceCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'TimeRequestWorkspace',
+      apiUrl: '${getBaseApiUrl()}/api/v1/time-requests/workspace',
+      callType: ApiCallType.GET,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+/// Submits a past period of work. Admin entries are approved on submit;
+/// everyone else's wait for approval.
+class SubmitTimeRequestCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+    required String userId,
+    required String projectId,
+    required String taskId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+    required String reason,
+    required bool remote,
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'SubmitTimeRequest',
+      apiUrl: '${getBaseApiUrl()}/api/v1/time-requests',
+      callType: ApiCallType.POST,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      params: {},
+      body: json.encode({
+        'user_id': userId,
+        'project_id': projectId,
+        'task_id': taskId,
+        'started_at': startedAt.toUtc().toIso8601String(),
+        'ended_at': endedAt.toUtc().toIso8601String(),
+        'reason': reason,
+        'remote': remote,
+      }),
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class ApiPagingParams {
   int nextPageNumber = 0;
   int numItems = 0;
