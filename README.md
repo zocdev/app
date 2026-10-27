@@ -5,6 +5,7 @@ Desktop time-tracking app for logging work against projects, clients, and tasks.
 ## Features
 
 - **Authentication** — login, registration, email verification (OTP), password recovery/reset
+- **Terms acceptance** — checks the current server version on sign-in and restored sessions, before mounting work screens or starting monitoring. Users open the legal documents in their browser, then explicitly accept or sign out. Failed requests remain blocked with a retry; version conflicts reload the documents and clear the checkbox.
 - **Expediente (timesheet)** — select project, tasks, notes; mark remote vs on-site work
 - **Periodic activity prompts** — timer-driven popup with optional screenshot capture when logging entries
 - **Offline queue** — unsynced entries persisted locally and retried later
@@ -95,6 +96,8 @@ Base URL is selected in `lib/backend/api_requests/api_config.dart`:
 | Resend confirmation | `POST` | `/api/v1/auth/resend-confirmation` |
 | Forgot password | `POST` | `/api/v1/auth/forgot-password` |
 | Reset password | `POST` | `/api/v1/auth/reset-password` |
+| Current terms and onboarding status | `GET` | `/api/v1/onboarding/status` |
+| Accept current terms | `POST` | `/api/v1/onboarding/terms` |
 | Add time entry | `POST` | `/api/v1/timemanager/entries` |
 | Ignored popups | — | `/api/v1/timemanager/entries/ignored/{id}` |
 | User projects | `GET` | `/api/v1/assignments/projects/user/{userId}` |
@@ -104,6 +107,8 @@ Base URL is selected in `lib/backend/api_requests/api_config.dart`:
 | Tasks done | `GET` | `/api/v1/tasks/user/done/{userId}` |
 
 Authenticated requests send `Authorization: Bearer <access_token>`.
+
+The terms screen uses `terms_version`, `terms_pending`, `terms_url` and `privacy_url` from the status endpoint. The backend must set `FRONTEND_URL` to the public web origin so both document links are absolute URLs. Deploy the onboarding migrations and backend, then the legal web pages, before distributing this app version. No accepted version is stored locally; the server stores the acceptance date and version for the account and its memberships.
 
 Time entries may include: tasks, project id, remote flag, notes, timestamp, screenshot (base64), and ignored-popup flag.
 

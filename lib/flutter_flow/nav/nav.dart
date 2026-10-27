@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '/backend/schema/structs/index.dart';
 
 import '/auth/custom_auth/custom_auth_user_provider.dart';
+import '/auth/terms_gate.dart';
 
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -80,14 +81,14 @@ GoRouter createRouter(AppStateNotifier appStateNotifier,
       refreshListenable: appStateNotifier,
       navigatorKey: navigatorKey ?? appNavigatorKey,
       errorBuilder: (context, state) => appStateNotifier.loggedIn
-          ? MensajeAntesExpedienteWidget()
+          ? TermsGate(child: MensajeAntesExpedienteWidget())
           : LoginWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
           builder: (context, _) => appStateNotifier.loggedIn
-              ? MensajeAntesExpedienteWidget()
+              ? TermsGate(child: MensajeAntesExpedienteWidget())
               : LoginWidget(),
         ),
         FFRoute(
@@ -98,6 +99,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier,
         FFRoute(
           name: ExpedienteWidget.routeName,
           path: ExpedienteWidget.routePath,
+          requireAuth: true,
           builder: (context, params) => ExpedienteWidget(),
         ),
         FFRoute(
@@ -120,6 +122,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier,
         FFRoute(
           name: LogoutWidget.routeName,
           path: LogoutWidget.routePath,
+          requireAuth: true,
           builder: (context, params) => LogoutWidget(),
         ),
         FFRoute(
@@ -145,6 +148,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier,
         FFRoute(
           name: MensajeAntesExpedienteWidget.routeName,
           path: MensajeAntesExpedienteWidget.routePath,
+          requireAuth: true,
           builder: (context, params) => MensajeAntesExpedienteWidget(),
         ),
         FFRoute(
@@ -366,7 +370,9 @@ class FFRoute {
                     ),
                   ),
                 )
-              : page;
+              : requireAuth
+                  ? TermsGate(child: page)
+                  : page;
 
           final transitionInfo = state.transitionInfo;
           return transitionInfo.hasTransition
