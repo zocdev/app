@@ -36,6 +36,31 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   late PopupDialogModel _model;
   Timer? _ignoreTimer;
   bool _submitted = false;
+  bool _refreshing = false;
+
+  // Reloads clients and projects, e.g. when the member was assigned to a
+  // project after the popup opened. Keeps the client if it still exists.
+  Future<void> _refreshOptions() async {
+    if (_refreshing) return;
+    safeSetState(() => _refreshing = true);
+    await _model.fetchdata(context);
+    if (!mounted) return;
+    final clientStillExists = FFAppState()
+        .clientsOptions
+        .any((e) => e.id == _model.clientDropDownValue);
+    if (!clientStillExists) {
+      _model.clientDropDownValue = null;
+      _model.selectedClient = null;
+      _model.clientDropDownValueController?.value = null;
+    }
+    _model.dropdownprojetosValue = null;
+    _model.selectedProjects = null;
+    _model.dropdownprojetosValueController?.value = null;
+    _model.dropdownatividadesValue = null;
+    _model.dropdownatividadesValueController?.value = null;
+    FFAppState().taskOptions = [];
+    safeSetState(() => _refreshing = false);
+  }
 
   @override
   void setState(VoidCallback callback) {
@@ -166,6 +191,24 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 showTagline: false,
                               ),
                             ),
+                          ),
+                          IconButton(
+                            tooltip: 'Atualizar clientes e projetos',
+                            onPressed: _refreshing ? null : _refreshOptions,
+                            icon: _refreshing
+                                ? const SizedBox(
+                                    width: 20.0,
+                                    height: 20.0,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.0,
+                                      color: Color(0xFF0F8F8A),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.refresh,
+                                    color: Color(0xFF0F8F8A),
+                                    size: 24.0,
+                                  ),
                           ),
                         ],
                       ),

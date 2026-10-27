@@ -20,6 +20,7 @@ Future<void> prepareDesktopWindowForPopup() async {
   try {
     await windowManager.show();
     await windowManager.restore();
+    await _waitUntilRestoredOnMac();
     await windowManager.setSkipTaskbar(false);
     await windowManager.setSize(kDesktopPopupWindowSize);
     await windowManager.setAlwaysOnTop(true);
@@ -36,6 +37,10 @@ Future<void> restoreDesktopWindowAfterPopup() async {
   try {
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setSize(kDesktopWindowSize);
+    if (defaultTargetPlatform == TargetPlatform.macOS) {
+      // Let the resize frame render before the Dock animation starts.
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
     await hideDesktopWindow();
   } catch (_) {}
 }
@@ -48,4 +53,15 @@ Future<void> hideDesktopWindow() async {
   } else {
     await windowManager.hide();
   }
+}
+
+/// macOS: resizing while the window is still leaving the Dock makes Impeller
+/// draw into a null surface and crash (SIGSEGV in Canvas::SetupRenderPass).
+/// Wait for the restore animation to finish before touching the size.
+Future<void> _waitUntilRestoredOnMac() async {
+  if (defaultTargetPlatform != TargetPlatform.macOS) return;
+  for (var i = 0; i < 20 && await windowManager.isMinimized(); i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
+  await Future<void>.delayed(const Duration(milliseconds: 300));
 }
