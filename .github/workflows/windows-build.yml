@@ -141,7 +141,7 @@ jobs:
           tag_name: ${{ github.event.release.tag_name }}
           files: |
             Zoc-windows-x64.zip
-            zoc_*.exe
+            zoc.exe
             latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
