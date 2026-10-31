@@ -83,7 +83,7 @@ Base URL is selected in `lib/backend/api_requests/api_config.dart`:
 | Mode | Base URL |
 |------|----------|
 | Debug (`kDebugMode`) | `http://localhost:8089` |
-| Release | `https://zoc-be-api-mzah.onrender.com` |
+| Release | `https://zoc-be-api-60512640268.southamerica-east1.run.app` |
 
 ### Main endpoints
 

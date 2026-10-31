@@ -13,5 +13,5 @@ String getBaseApiUrl() {
   if (kDebugMode) {
     return 'http://localhost:8089';
   }
-  return 'https://zoc-be-api-mzah.onrender.com';
+  return 'https://zoc-be-api-60512640268.southamerica-east1.run.app';
 }
