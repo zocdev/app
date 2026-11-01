@@ -18,6 +18,7 @@ import '/desktop/update_dialog.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/internationalization.dart';
 import 'index.dart';
+import '/ui/zoc_theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -367,30 +368,7 @@ class _MyAppState extends State<MyApp> with WindowListener {
         Locale('pt'),
         Locale('en'),
       ],
-      theme: ThemeData(
-        brightness: Brightness.light,
-        useMaterial3: false,
-        primaryColor: const Color(0xFF0F8F8A),
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF0F8F8A),
-          secondary: Color(0xFF0F8F8A),
-        ),
-        iconTheme: const IconThemeData(color: Color(0xFF0F8F8A)),
-        progressIndicatorTheme: const ProgressIndicatorThemeData(
-          color: Color(0xFF0F8F8A),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF0F8F8A),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF0F8F8A),
-            foregroundColor: Colors.white,
-          ),
-        ),
-      ),
+      theme: zocThemeData(),
       themeMode: _themeMode,
       routerConfig: _router,
     );
