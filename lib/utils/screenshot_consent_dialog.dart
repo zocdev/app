@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '/auth/auth_session.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '/ui/zoc_ui.dart';
 import '/utils/capture_screenshot.dart';
 
 Future<bool> showScreenshotConsentDialog(
@@ -15,58 +14,59 @@ Future<bool> showScreenshotConsentDialog(
     return true;
   }
 
-  final approved = await showDialog<bool>(
-    context: context,
+  final approved = await showZocModal<bool>(
+    context,
     barrierDismissible: false,
-    builder: (dialogContext) {
-      return AlertDialog(
-        title: Text(
-          'Capturas de tela',
-          style: FlutterFlowTheme.of(dialogContext).titleMedium.override(
-                font: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: EdgeInsets.zero,
+      child: ZocModal(
+        width: 420,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ZocHeroIcon(Icons.photo_camera_outlined),
+            const SizedBox(height: 14),
+            const ZocTitle(
+              'Capturas de tela',
+              subtitle: 'Durante o expediente, o ZOC tira capturas de tela '
+                  'periodicamente para acompanhar a produtividade.',
+              center: true,
+              small: true,
+            ),
+            const SizedBox(height: 14),
+            const ZocNotice(
+              'Sem a sua aprovação não é possível continuar e a sessão '
+              'será encerrada.',
+              kind: ZocNoticeKind.warn,
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: ZocButton(
+                    'Não aprovo',
+                    variant: ZocButtonVariant.secondary,
+                    expanded: true,
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                  ),
                 ),
-                color: const Color(0xFF101827),
-                letterSpacing: 0.0,
-              ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ZocButton(
+                    'Aprovar',
+                    expanded: true,
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-        content: Text(
-          'Durante o uso do ZOC, serão feitas capturas de tela periodicamente '
-          'para monitoramento de produtividade.\n\n'
-          'Se você não aprovar, não será possível continuar e a sessão será encerrada.',
-          style: FlutterFlowTheme.of(dialogContext).bodyMedium.override(
-                font: GoogleFonts.inter(),
-                color: const Color(0xFF101827),
-                fontSize: 14.0,
-                letterSpacing: 0.0,
-              ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              'Não aprovo',
-              style: GoogleFonts.inter(
-                color: const Color(0xFF6B7280),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0F8F8A),
-              foregroundColor: Colors.white,
-              elevation: 0,
-            ),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              'Aprovar',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      );
-    },
+      ),
+    ),
   );
 
   return approved == true;
