@@ -182,8 +182,13 @@ Future<void> generatePDF(
 
   try {
     print("Iniciando impresión directa...");
+    // dynamicLayout must stay false: with dynamic layout the macOS plugin
+    // blocks the main thread waiting for Dart to send the document, and
+    // since Flutter runs Dart on that same thread the app deadlocks.
+    final bytes = await pdf.save();
     await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => await pdf.save(),
+      onLayout: (_) async => bytes,
+      dynamicLayout: false,
     );
     print("Impresión iniciada con éxito");
   } catch (e, stack) {
