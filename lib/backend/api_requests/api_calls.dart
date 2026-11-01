@@ -312,6 +312,31 @@ class GetWorkGoalCall {
   }
 }
 
+/// Organization of the signed-in user (any member may read their own org).
+/// Response: `{"id", "name", "avatar", ...}`.
+class GetOrganizationCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+    String? orgId = '',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetOrganization',
+      apiUrl: '${getBaseApiUrl()}/api/v1/organizations/$orgId',
+      callType: ApiCallType.GET,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class GetTaskDoneByUserCall {
   static Future<ApiCallResponse> call({
     String? token = '',

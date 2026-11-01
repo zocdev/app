@@ -246,61 +246,64 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
     await _load('day');
   }
 
+  Map<String, dynamic>? _org;
+  bool _exporting = false;
+
+  /// Name and avatar of the user's organization, fetched once per screen.
+  Future<Map<String, dynamic>?> _loadOrg() async {
+    if (_org != null) return _org;
+    final orgId = getJsonField(FFAppState().UserData, r'''$.user.org_id''')
+            ?.toString() ??
+        '';
+    if (orgId.isEmpty || orgId == 'null') return null;
+    try {
+      final response = await GetOrganizationCall.call(
+        token: currentAuthenticationToken,
+        orgId: orgId,
+      ).timeout(const Duration(seconds: 8));
+      final body = response.jsonBody;
+      if (response.succeeded && body is Map) {
+        _org = Map<String, dynamic>.from(body);
+      }
+    } catch (_) {}
+    return _org;
+  }
+
   Future<void> _exportPdf() async {
-    await actions.generatePDF(
-      getJsonField(
-        _model.tasksDone,
-        r'''$''',
-        true,
-      ),
-      formatNumber(
-        TaskDoneStruct.maybeFromMap(getJsonField(
-          _model.tasksDone,
-          r'''$.hours''',
-        ).toString())
-            ?.hours,
-        formatType: FormatType.decimal,
-      ),
-      getJsonField(
-        _model.tasksDone,
-        r'''$.task_name''',
-      ).toString(),
-      getJsonField(
-        _model.tasksDone,
-        r'''$.project_name''',
-      ).toString(),
-      getJsonField(
-        _model.tasksDone,
-        r'''$.entry_date''',
-      ).toString(),
-      dateTimeFormat(
-        "d/M/y",
-        TaskDoneStruct.maybeFromMap(getJsonField(
-          _model.tasksDone,
-          r'''$.created_at''',
-        ).toString())
-            ?.endDate,
-        locale: FFLocalizations.of(context).languageCode,
-      ),
-      dateTimeFormat(
-        "d/M/y",
-        TaskDoneStruct.maybeFromMap(getJsonField(
-          _model.tasksDone,
-          r'''$.ended_at''',
-        ).toString())
-            ?.endDate,
-        locale: FFLocalizations.of(context).languageCode,
-      ),
-      getJsonField(
-        _model.tasksDone,
-        r'''$.client_name''',
-      ).toString(),
-      getJsonField(
-        _model.tasksDone,
-        r'''$.user_name''',
-      ).toString(),
-      _model.ignoredPopUps?.toString(),
-    );
+    if (_exporting) return;
+    _exporting = true;
+    try {
+      final org = await _loadOrg();
+      final user = getJsonField(FFAppState().UserData, r'''$.user''');
+      final userName = user is Map
+          ? [user['first_name'], user['last_name']]
+              .map((v) => '${v ?? ''}'.trim())
+              .where((v) => v.isNotEmpty && v != 'null')
+              .join(' ')
+          : '';
+      final ranged = _model.initDate != null && _model.endDate != null;
+      final (start, end) =
+          ranged ? (_model.initDate!, _model.endDate!) : _periodBounds();
+      final label = ranged
+          ? 'Período personalizado'
+          : _model.week
+              ? 'Semana'
+              : _model.month
+                  ? 'Mês'
+                  : 'Dia';
+      await actions.generatePDF(
+        activities: _tasks,
+        userName: userName,
+        orgName: org?['name']?.toString(),
+        orgAvatarUrl: org?['avatar']?.toString(),
+        periodLabel: label,
+        periodStart: start.isAfter(end) ? end : start,
+        periodEnd: start.isAfter(end) ? start : end,
+        ignoredPopUps: _model.ignoredPopUps,
+      );
+    } finally {
+      _exporting = false;
+    }
   }
 
   String get _locale => FFLocalizations.of(context).languageCode;
