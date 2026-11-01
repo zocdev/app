@@ -5,6 +5,7 @@ import '/auth/auth_session.dart';
 import '/backend/api_requests/api_config.dart';
 import '/backend/api_requests/api_manager.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/ui/zoc_ui.dart';
 
 /// Checks the server version before mounting pages that can start monitoring.
 /// No local version or acceptance cache: restored sessions use the same check.
@@ -145,89 +146,131 @@ class _TermsGateState extends State<TermsGate> {
   Widget build(BuildContext context) {
     if (!_loading && _status?['terms_pending'] == false) return widget.child;
 
+    final status = _status;
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF6F8FA),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Termos de Uso e Política de Privacidade',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 12),
-                    if (_loading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (_status != null) ...[
-                      Text('Publicamos a versão ${_status!['terms_version']}. '
-                          'Para continuar usando o ZOC, leia e aceite os documentos.'),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          TextButton(
-                            onPressed: () => _openDocument('terms_url'),
-                            child: const Text('Termos de Uso'),
-                          ),
-                          TextButton(
-                            onPressed: () => _openDocument('privacy_url'),
-                            child: const Text('Política de Privacidade'),
-                          ),
-                        ],
-                      ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text('Li e aceito os Termos de Uso e a '
-                            'Política de Privacidade.'),
-                        value: _checked,
-                        onChanged: _saving
-                            ? null
-                            : (value) =>
-                                setState(() => _checked = value == true),
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 8),
-                      Text(_error!,
-                          style: const TextStyle(color: Color(0xFFB42318))),
-                    ],
-                    const SizedBox(height: 16),
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        TextButton(
-                          onPressed: _saving ? null : _logout,
-                          child: const Text('Sair'),
-                        ),
-                        if (!_loading && _status == null)
-                          ElevatedButton(
-                            onPressed: _load,
-                            child: const Text('Tentar novamente'),
-                          )
-                        else
-                          ElevatedButton(
-                            onPressed: !_loading && _checked && !_saving
-                                ? _accept
-                                : null,
-                            child: Text(_saving
-                                ? 'Salvando...'
-                                : 'Aceitar e continuar'),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+      child: ZocAuthScaffold(
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ZocTitle(
+              'Termos de Uso e Privacidade',
+              badge: status == null
+                  ? null
+                  : ZocBadge('Versão ${status['terms_version']}'),
+              subtitle: status == null && !_loading
+                  ? null
+                  : 'Atualizamos nossos documentos. Leia e aceite para '
+                      'continuar usando o ZOC.',
             ),
+            const SizedBox(height: 14),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: ZocColors.brand),
+                  ),
+                ),
+              )
+            else if (status != null) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _DocLink(
+                      icon: Icons.description_outlined,
+                      label: 'Termos de Uso',
+                      onTap: () => _openDocument('terms_url'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _DocLink(
+                      icon: Icons.verified_user_outlined,
+                      label: 'Política de Privacidade',
+                      onTap: () => _openDocument('privacy_url'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ZocCheckRow(
+                label: 'Li e aceito os Termos de Uso e a '
+                    'Política de Privacidade.',
+                value: _checked,
+                onChanged: _saving
+                    ? null
+                    : (value) => setState(() => _checked = value),
+              ),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              ZocNotice(_error!, kind: ZocNoticeKind.error),
+            ],
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                ZocButton(
+                  'Sair',
+                  variant: ZocButtonVariant.ghost,
+                  onPressed: _saving ? null : _logout,
+                ),
+                if (!_loading && status == null)
+                  ZocButton('Tentar novamente',
+                      icon: Icons.refresh_rounded, onPressed: _load)
+                else
+                  ZocButton(
+                    _saving ? 'Salvando...' : 'Aceitar e continuar',
+                    loading: _saving,
+                    onPressed:
+                        !_loading && _checked && !_saving ? _accept : null,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Link card that opens a legal document in the browser.
+class _DocLink extends StatelessWidget {
+  const _DocLink(
+      {required this.icon, required this.label, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(ZocRadii.item);
+    return Material(
+      color: ZocColors.surface2,
+      borderRadius: radius,
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 17, color: ZocColors.brand),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(label,
+                      style: ZocText.strong().copyWith(fontSize: 13))),
+              const SizedBox(width: 6),
+              const Icon(Icons.open_in_new_rounded,
+                  size: 15, color: ZocColors.faint),
+            ],
           ),
         ),
       ),
