@@ -18,6 +18,8 @@ class InfoWidget extends StatefulWidget {
 }
 
 class _InfoWidgetState extends State<InfoWidget> {
+  bool _passwordsDiffer = false;
+
   late InfoModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
@@ -74,6 +76,12 @@ class _InfoWidgetState extends State<InfoWidget> {
       );
       return;
     }
+    final differ = _model.textFieldNovaSenhaTextController.text !=
+        _model.textFieldConfirmSenhaTextController.text;
+    if (differ != _passwordsDiffer) {
+      safeSetState(() => _passwordsDiffer = differ);
+    }
+    if (differ) return;
     _model.sendInfo = await RegisterUserCall.call(
       email: FFAppState().email,
       password: _model.textFieldNovaSenhaTextController.text,
@@ -182,6 +190,13 @@ class _InfoWidgetState extends State<InfoWidget> {
                   ),
                 ],
               ),
+              if (_passwordsDiffer) ...[
+                const SizedBox(height: 10),
+                const ZocNotice(
+                  'As senhas não coincidem.',
+                  kind: ZocNoticeKind.error,
+                ),
+              ],
               if (FFAppState().loginFailed) ...[
                 const SizedBox(height: 10),
                 const ZocNotice(

@@ -14,6 +14,7 @@ export 'logout_model.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
 import '/utils/time_tracking.dart';
+import '/expediente/expediente_widget.dart' show expedienteGoalLabel;
 import '/ui/zoc_ui.dart';
 import 'popup_countdown.dart';
 
@@ -42,7 +43,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
   Timer? _countdownTimer;
   DateTime? _nextPopupAt;
   double? _workedHours;
-  final double _dailyGoalHours = 8;
+  double _dailyGoalHours = GetWorkGoalCall.fallbackHours('today');
   bool _hoursLoading = false;
 
   @override
@@ -317,6 +318,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
         userId: userId,
         period: 'today',
       );
+      unawaited(_loadDailyGoal(userId));
       final hours = num.tryParse(result.jsonBody.toString());
       if (mounted && result.succeeded && hours != null && hours.isFinite) {
         setState(
@@ -326,6 +328,22 @@ class _LogoutWidgetState extends State<LogoutWidget>
       // Keep the last known value while offline.
     } finally {
       _hoursLoading = false;
+    }
+  }
+
+  Future<void> _loadDailyGoal(String userId) async {
+    try {
+      final result = await GetWorkGoalCall.call(
+        token: currentAuthenticationToken,
+        userId: userId,
+        period: 'today',
+      );
+      final goal = GetWorkGoalCall.goalHours(result, 'today');
+      if (mounted && goal != _dailyGoalHours) {
+        setState(() => _dailyGoalHours = goal);
+      }
+    } catch (_) {
+      // Keep the fallback goal while offline.
     }
   }
 
@@ -456,7 +474,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
                   ),
                   Semantics(
                     label:
-                        '${(progress * 100).round()}% da meta de ${_dailyGoalHours.toStringAsFixed(0)} horas',
+                        '${(progress * 100).round()}% da meta de ${expedienteGoalLabel(_dailyGoalHours)}',
                     child: SizedBox.square(
                       dimension: 64,
                       child: Stack(

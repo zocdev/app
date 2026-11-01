@@ -23,7 +23,7 @@ String expedienteHoursLabel(double? hours) {
 }
 
 /// Goal label: "8h", "7h 30min".
-String _goalLabel(double hours) {
+String expedienteGoalLabel(double hours) {
   if (hours == hours.roundToDouble()) return '${hours.round()}h';
   return expedienteHoursLabel(hours);
 }
@@ -536,7 +536,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
     final ratio = goal == null || goal <= 0 ? 0.0 : worked / goal;
     final caption = goal == null
         ? 'Carregando meta…'
-        : '${(ratio * 100).round()}% da meta de ${_goalLabel(goal)}';
+        : '${(ratio * 100).round()}% da meta de ${expedienteGoalLabel(goal)}';
     final soft = ZocText.caption(color: const Color(0xE6FFFFFF))
         .copyWith(fontSize: 13);
     return ZocHeroCard(
