@@ -1,15 +1,12 @@
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/api_requests/api_manager.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/index.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'entrar_con_senha_model.dart';
-import '/utils/zoc_logo.dart';
+import '/ui/zoc_ui.dart';
 export 'entrar_con_senha_model.dart';
 
 class EntrarConSenhaWidget extends StatefulWidget {
@@ -154,251 +151,90 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
         FocusScope.of(context).unfocus();
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          top: true,
-          child: Align(
-            alignment: const AlignmentDirectional(0.0, 0.0),
-            child: Container(
-              width: 500.0,
-              height: 400.0,
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 4.0,
-                    color: Color(0x33000000),
-                    offset: Offset(
-                      0.0,
-                      2.0,
-                    ),
-                  )
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        ZocLogo(
-                          width: 100.0,
-                          showTagline: false,
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Center(
-                      child: SizedBox(
-                        width: 297.0,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 297.0,
-                              child: TextFormField(
-                                controller: _model.emailTextController,
-                                focusNode: _model.emailFocusNode,
-                                autofocus: false,
-                                readOnly: true,
-                                obscureText: false,
-                                textAlign: TextAlign.center,
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  enabledBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0x3F0F8F8A),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0x3F0F8F8A),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context).error,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context).error,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12.0),
-                                  ),
-                                  filled: true,
-                                  fillColor: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0,
-                                    vertical: 10.0,
-                                  ),
-                                ),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF101827),
-                                  fontSize: 15.0,
-                                ),
-                                cursorColor:
-                                    FlutterFlowTheme.of(context).primaryText,
-                                validator: _model.emailTextControllerValidator
-                                    .asValidator(context),
-                              ),
-                            ),
-                            const SizedBox(height: 16.0),
-                            Text(
-                              'Senha',
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF101827),
-                                fontSize: 14.0,
-                              ),
-                            ),
-                            const SizedBox(height: 6.0),
-                            SizedBox(
-                              width: 297.0,
-                              child: TextFormField(
-                                controller: _model.senhaTextController,
-                                focusNode: _model.senhaFocusNode,
-                                autofocus: true,
-                                obscureText: !_model.senhaVisibility,
-                                onFieldSubmitted: (_) => _submitLogin(),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  hintText: 'Digite sua senha',
-                                  hintStyle: GoogleFonts.inter(
-                                    color: const Color(0xFF667085),
-                                    fontSize: 14.0,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0x3F0F8F8A),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF0F8F8A),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context).error,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: BorderSide(
-                                      color: FlutterFlowTheme.of(context).error,
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                  ),
-                                  filled: true,
-                                  fillColor: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12.0,
-                                    vertical: 12.0,
-                                  ),
-                                  suffixIcon: InkWell(
-                                    onTap: () => safeSetState(
-                                      () => _model.senhaVisibility =
-                                          !_model.senhaVisibility,
-                                    ),
-                                    focusNode: FocusNode(skipTraversal: true),
-                                    child: Icon(
-                                      _model.senhaVisibility
-                                          ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
-                                      color: const Color(0xFF0F8F8A),
-                                      size: 20,
-                                    ),
-                                  ),
-                                ),
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF101827),
-                                  fontSize: 14.0,
-                                ),
-                                cursorColor:
-                                    FlutterFlowTheme.of(context).primaryText,
-                                validator: _model.senhaTextControllerValidator
-                                    .asValidator(context),
-                              ),
-                            ),
-                            const SizedBox(height: 10.0),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: InkWell(
-                                splashColor: Colors.transparent,
-                                focusColor: Colors.transparent,
-                                hoverColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                                onTap: () async {
-                                  context.pushNamed(
-                                      RedefinirSenhaWidget.routeName);
-                                },
-                                child: Text(
-                                  'Esqueceu sua Senha?',
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFF0F8F8A),
-                                    fontSize: 13.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20.0),
-                            Center(
-                              child: FFButtonWidget(
-                                onPressed: _submitLogin,
-                                text: 'Entrar',
-                                options: FFButtonOptions(
-                                  width: 150.0,
-                                  height: 42.0,
-                                  padding: EdgeInsets.zero,
-                                  iconPadding: EdgeInsets.zero,
-                                  color: const Color(0xFF0F8F8A),
-                                  textStyle: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    fontSize: 15.0,
-                                  ),
-                                  elevation: 0.0,
-                                  borderRadius: BorderRadius.circular(10.0),
-                                ),
-                                showLoadingIndicator: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                  ],
-                ),
+      child: ZocAuthScaffold(
+        scaffoldKey: scaffoldKey,
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const ZocTitle('Digite sua senha'),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _EmailChip(
+                email: _model.emailTextController?.text ?? '',
+                onChange: () => context.goNamed(LoginWidget.routeName),
               ),
             ),
-          ),
+            const SizedBox(height: 14),
+            ZocTextField(
+              label: 'Senha',
+              icon: Icons.lock_outline_rounded,
+              hintText: 'Digite sua senha',
+              password: true,
+              autofocus: true,
+              controller: _model.senhaTextController,
+              focusNode: _model.senhaFocusNode,
+              textInputAction: TextInputAction.go,
+              onFieldSubmitted: (_) => _submitLogin(),
+              validator:
+                  _model.senhaTextControllerValidator.asValidator(context),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                splashColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                onTap: () async {
+                  context.pushNamed(RedefinirSenhaWidget.routeName);
+                },
+                child: Text('Esqueceu a senha?', style: ZocText.link()),
+              ),
+            ),
+            const SizedBox(height: 14),
+            ZocButton('Entrar', expanded: true, onPressed: _submitLogin),
+          ],
         ),
       ),
     );
   }
+}
+
+/// Pill showing the e-mail typed on the login screen, with a "Trocar" link.
+class _EmailChip extends StatelessWidget {
+  const _EmailChip({required this.email, required this.onChange});
+
+  final String email;
+  final VoidCallback onChange;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(12, 7, 14, 7),
+        decoration: BoxDecoration(
+          color: ZocColors.brandSoft,
+          borderRadius: BorderRadius.circular(ZocRadii.pill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_outline_rounded,
+                size: 15, color: ZocColors.text),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ZocText.body()),
+            ),
+            const SizedBox(width: 10),
+            InkWell(
+              onTap: onChange,
+              child: Text('Trocar', style: ZocText.link()),
+            ),
+          ],
+        ),
+      );
 }
