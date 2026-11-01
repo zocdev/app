@@ -1,17 +1,13 @@
-import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
+import '/index.dart';
+import '/ui/zoc_ui.dart';
+import 'package:flutter/material.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/utils/api_client_exception.dart';
 import '/utils/api_error_helper.dart';
 import '/utils/error_handler.dart';
-import '/index.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'recover_password_model.dart';
-import '/utils/zoc_logo.dart';
 export 'recover_password_model.dart';
 
 class RecoverPasswordWidget extends StatefulWidget {
@@ -68,36 +64,6 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
   void dispose() {
     _model.dispose();
     super.dispose();
-  }
-
-  InputDecoration _fieldDecoration(BuildContext context) {
-    return InputDecoration(
-      isDense: true,
-      enabledBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0xB0D5F0EE), width: 1.0),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Color(0xFF0F8F8A), width: 1.0),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: FlutterFlowTheme.of(context).error,
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: FlutterFlowTheme.of(context).error,
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(8.0),
-      ),
-      filled: true,
-      fillColor: FlutterFlowTheme.of(context).secondaryBackground,
-    );
   }
 
   Future<void> _submit() async {
@@ -162,313 +128,71 @@ class _RecoverPasswordWidgetState extends State<RecoverPasswordWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final formEnabled = !_model.resetSucceeded && (_token.isNotEmpty || kDebugMode);
-
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          top: true,
-          child: Align(
-            alignment: const AlignmentDirectional(0.0, 0.0),
-            child: SafeArea(
-              child: Container(
-                width: 500.0,
-                height: 430.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 4.0,
-                      color: Color(0x33000000),
-                      offset: Offset(0.0, 2.0),
-                    )
-                  ],
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: Form(
-                  key: _model.formKey,
-                  autovalidateMode: AutovalidateMode.disabled,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsetsDirectional.fromSTEB(
-                        20.0, 0.0, 20.0, 16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const ZocLogo(
-                              width: 100.0,
-                              showTagline: false,
-                            ),
-                            InkWell(
-                              splashColor: Colors.transparent,
-                              focusColor: Colors.transparent,
-                              hoverColor: Colors.transparent,
-                              highlightColor: Colors.transparent,
-                              onTap: () async {
-                                context.pushNamed(
-                                    EntrarConSenhaWidget.routeName);
-                              },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8.0),
-                                child: SvgPicture.asset(
-                                  'assets/images/Group_810.svg',
-                                  width: 18.0,
-                                  height: 18.0,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Text(
-                          'Nova senha',
-                          textAlign: TextAlign.center,
-                          style: FlutterFlowTheme.of(context)
-                              .displaySmall
-                              .override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                color: const Color(0xFF101827),
-                                fontSize: 20.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const SizedBox(height: 12.0),
-                        Text(
-                          'Defina uma nova senha para sua conta.',
-                          textAlign: TextAlign.center,
-                          style:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    color: const Color(0xFF101827),
-                                    fontSize: 14.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                        ),
-                        if (_model.tokenMissingMessage != null) ...[
-                          const SizedBox(height: 12.0),
-                          Text(
-                            _model.tokenMissingMessage!,
-                            textAlign: TextAlign.center,
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(),
-                                  color: FlutterFlowTheme.of(context).error,
-                                  fontSize: 13.0,
-                                  letterSpacing: 0.0,
-                                ),
-                          ),
-                        ],
-                        if (kDebugMode && _token.isEmpty) ...[
-                          const SizedBox(height: 12.0),
-                          Align(
-                            alignment: const AlignmentDirectional(-1.0, 0.0),
-                            child: Text(
-                              'Token (debug)',
-                              style: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    color: const Color(0xFF101827),
-                                    fontSize: 13.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                            ),
-                          ),
-                          const SizedBox(height: 6.0),
-                          TextFormField(
-                            onChanged: (value) {
-                              _token = value.trim();
-                            },
-                            decoration: _fieldDecoration(context).copyWith(
-                              hintText: 'Cole o token do e-mail',
-                            ),
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(),
-                                  fontSize: 14.0,
-                                  letterSpacing: 0.0,
-                                ),
-                          ),
-                        ],
-                        const SizedBox(height: 16.0),
-                        Align(
-                          alignment: const AlignmentDirectional(-1.0, 0.0),
-                          child: Text(
-                            'Nova senha',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  color: const Color(0xFF101827),
-                                  fontSize: 15.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        TextFormField(
+    final formEnabled =
+        !_model.resetSucceeded && (_token.isNotEmpty || kDebugMode);
+    return ZocAuthScaffold(
+      scaffoldKey: scaffoldKey,
+      topAction: IconButton(
+          onPressed: () => context.pushNamed(EntrarConSenhaWidget.routeName),
+          icon: const Icon(Icons.close_rounded, color: ZocColors.muted),
+          tooltip: 'Voltar ao login'),
+      body: Form(
+          key: _model.formKey,
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const ZocTitle('Nova senha',
+                    subtitle: 'Defina uma nova senha para sua conta.'),
+                if (_model.tokenMissingMessage != null) ...[
+                  const SizedBox(height: 10),
+                  ZocNotice(_model.tokenMissingMessage!,
+                      kind: ZocNoticeKind.error),
+                ],
+                if (kDebugMode && _token.isEmpty) ...[
+                  const SizedBox(height: 12),
+                  ZocTextField(
+                      label: 'Token (debug)',
+                      hintText: 'Cole o token do e-mail',
+                      onChanged: (value) {
+                        _token = value.trim();
+                      }),
+                ],
+                const SizedBox(height: 14),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                      child: ZocTextField(
+                          label: 'Nova senha',
+                          icon: Icons.lock_outline_rounded,
+                          password: true,
+                          enabled: formEnabled,
                           controller: _model.passwordTextController,
                           focusNode: _model.passwordFocusNode,
-                          enabled: formEnabled,
-                          obscureText: !_model.passwordVisibility,
-                          decoration: _fieldDecoration(context).copyWith(
-                            suffixIcon: InkWell(
-                              onTap: formEnabled
-                                  ? () => safeSetState(
-                                        () => _model.passwordVisibility =
-                                            !_model.passwordVisibility,
-                                      )
-                                  : null,
-                              child: Icon(
-                                _model.passwordVisibility
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: const Color(0xFF0F8F8A),
-                                size: 20.0,
-                              ),
-                            ),
-                          ),
-                          style:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(),
-                                    fontSize: 14.0,
-                                    letterSpacing: 0.0,
-                                  ),
                           validator: _model.passwordTextControllerValidator
-                              .asValidator(context),
-                        ),
-                        const SizedBox(height: 12.0),
-                        Align(
-                          alignment: const AlignmentDirectional(-1.0, 0.0),
-                          child: Text(
-                            'Confirmar senha',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  color: const Color(0xFF101827),
-                                  fontSize: 15.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        TextFormField(
+                              .asValidator(context))),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: ZocTextField(
+                          label: 'Confirmar senha',
+                          icon: Icons.lock_outline_rounded,
+                          password: true,
+                          enabled: formEnabled,
                           controller: _model.confirmPasswordTextController,
                           focusNode: _model.confirmPasswordFocusNode,
-                          enabled: formEnabled,
-                          obscureText: !_model.confirmPasswordVisibility,
-                          decoration: _fieldDecoration(context).copyWith(
-                            suffixIcon: InkWell(
-                              onTap: formEnabled
-                                  ? () => safeSetState(
-                                        () => _model.confirmPasswordVisibility =
-                                            !_model.confirmPasswordVisibility,
-                                      )
-                                  : null,
-                              child: Icon(
-                                _model.confirmPasswordVisibility
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: const Color(0xFF0F8F8A),
-                                size: 20.0,
-                              ),
-                            ),
-                          ),
-                          style:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(),
-                                    fontSize: 14.0,
-                                    letterSpacing: 0.0,
-                                  ),
                           validator: _model
                               .confirmPasswordTextControllerValidator
-                              .asValidator(context),
-                        ),
-                        const SizedBox(height: 20.0),
-                        FFButtonWidget(
-                          onPressed: formEnabled ? _submit : null,
-                          text: 'Redefinir senha',
-                          options: FFButtonOptions(
-                            width: 180.0,
-                            height: 40.0,
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                16.0, 0.0, 16.0, 0.0),
-                            color: const Color(0xFF0F8F8A),
-                            disabledColor: const Color(0xFF667085),
-                            textStyle: FlutterFlowTheme.of(context)
-                                .labelSmall
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  color: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  fontSize: 16.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                            elevation: 0.0,
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                        ),
-                        const SizedBox(height: 16.0),
-                        InkWell(
-                          splashColor: Colors.transparent,
-                          focusColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          onTap: () async {
-                            context.pushNamed(EntrarConSenhaWidget.routeName);
-                          },
-                          child: Text(
-                            'Voltar ao login',
-                            style: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  color: const Color(0xFF0F8F8A),
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+                              .asValidator(context))),
+                ]),
+                const SizedBox(height: 14),
+                ZocButton('Redefinir senha',
+                    expanded: true, onPressed: formEnabled ? _submit : null),
+                const SizedBox(height: 12),
+                Center(
+                    child: InkWell(
+                        onTap: () =>
+                            context.pushNamed(EntrarConSenhaWidget.routeName),
+                        child: Text('Voltar ao login', style: ZocText.link()))),
+              ])),
     );
   }
 }
