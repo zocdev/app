@@ -57,7 +57,7 @@ class AppUpdater {
           'AppUpdater: local="$localVersion" (build "${info.buildNumber}"), remote="$remoteVersion"',
         );
       }
-      if (localVersion.isEmpty || !_isNewer(remoteVersion, localVersion)) {
+      if (localVersion.isEmpty || !isNewer(remoteVersion, localVersion)) {
         return null;
       }
 
@@ -85,8 +85,7 @@ class AppUpdater {
     }
     await workDir.create(recursive: true);
 
-    final zipPath =
-        '${workDir.path}${Platform.pathSeparator}update.zip';
+    final zipPath = '${workDir.path}${Platform.pathSeparator}update.zip';
     final zipFile = File(zipPath);
 
     final client = http.Client();
@@ -98,9 +97,7 @@ class AppUpdater {
       if (streamed.statusCode != 200) {
         throw Exception('Download HTTP ${streamed.statusCode}');
       }
-      final sink = zipFile.openWrite();
-      await streamed.stream.pipe(sink);
-      await sink.close();
+      await streamed.stream.pipe(zipFile.openWrite());
     } finally {
       client.close();
     }
@@ -124,7 +121,7 @@ class AppUpdater {
   ) async {
     final exePath = Platform.resolvedExecutable;
     final installDir = File(exePath).parent.path;
-    final staged = _findWindowsReleaseDir(extractDir);
+    final staged = _findFile(extractDir, 'zoc.exe')?.parent;
     if (staged == null) {
       throw Exception('Windows release folder not found in zip');
     }
@@ -136,8 +133,7 @@ class AppUpdater {
     final batRelayPath =
         '${workDir.path}${Platform.pathSeparator}launch_updater.bat';
     final targetPid = pid;
-    final logPath =
-        '${workDir.path}${Platform.pathSeparator}update.log';
+    final logPath = '${workDir.path}${Platform.pathSeparator}update.log';
 
     // NOTE: Do NOT use $ErrorActionPreference = "Stop" at the top level —
     // it causes the script to terminate silently on any transient error
@@ -293,12 +289,6 @@ open "\$DEST"
     exit(0);
   }
 
-  static Directory? _findWindowsReleaseDir(Directory root) {
-    final exe = _findFile(root, 'zoc.exe');
-    if (exe != null) return exe.parent;
-    return null;
-  }
-
   static Directory? _findMacAppBundle(Directory root) {
     try {
       for (final entity in root.listSync(recursive: true)) {
@@ -325,11 +315,9 @@ open "\$DEST"
 
   static String _ps(String path) => path.replaceAll('"', '`"');
 
-  @visibleForTesting
-  static bool isNewer(String remote, String local) => _isNewer(remote, local);
-
   /// Compares dotted versions; build number (+N) is ignored.
-  static bool _isNewer(String remote, String local) {
+  @visibleForTesting
+  static bool isNewer(String remote, String local) {
     final r = _parseVersion(remote);
     final l = _parseVersion(local);
     for (var i = 0; i < 3; i++) {
