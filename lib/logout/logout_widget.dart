@@ -2,22 +2,20 @@ import 'dart:async';
 
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/instant_timer.dart';
 import '/pages/popup_dialog/popup_dialog_widget.dart';
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'logout_model.dart';
 export 'logout_model.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
 import '/utils/time_tracking.dart';
-import '/utils/zoc_logo.dart';
+import '/ui/zoc_ui.dart';
+import 'popup_countdown.dart';
 
 class LogoutWidget extends StatefulWidget {
   const LogoutWidget({super.key});
@@ -41,6 +39,11 @@ class _LogoutWidgetState extends State<LogoutWidget>
   bool _pendingReschedule = false;
   bool _refreshInFlight = false;
   Timer? _rescheduleDelayTimer;
+  Timer? _countdownTimer;
+  DateTime? _nextPopupAt;
+  double? _workedHours;
+  final double _dailyGoalHours = 8;
+  bool _hoursLoading = false;
 
   @override
   void initState() {
@@ -55,8 +58,17 @@ class _LogoutWidgetState extends State<LogoutWidget>
       FFAppState().contador = 0;
       _startPopupTimer(fireImmediately: true);
       _startUserPolling();
+      unawaited(_loadWorkedHours());
     });
 
+    var ticks = 0;
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      ticks++;
+      // Refresh every 30 seconds, then show every second of the last minute.
+      if (_remaining.inSeconds < 60 || ticks % 30 == 0) {
+        safeSetState(() {});
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
@@ -64,6 +76,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_refreshUserSettings());
+      unawaited(_loadWorkedHours());
     }
   }
 
@@ -71,6 +84,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _rescheduleDelayTimer?.cancel();
+    _countdownTimer?.cancel();
     _model.dispose();
 
     super.dispose();
@@ -117,6 +131,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
       duration: const Duration(seconds: 30),
       callback: (_) {
         unawaited(_refreshUserSettings());
+        unawaited(_loadWorkedHours());
       },
       startImmediately: false,
     );
@@ -179,6 +194,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
     _model.FirstTimer?.cancel();
     _rescheduleDelayTimer?.cancel();
     if (fireImmediately) {
+      _nextPopupAt = DateTime.now().add(Duration(minutes: _periodMinutes));
       _model.FirstTimer = InstantTimer.periodic(
         duration: Duration(minutes: _periodMinutes),
         callback: (_) {
@@ -202,6 +218,8 @@ class _LogoutWidgetState extends State<LogoutWidget>
         ? nextDue.difference(now)
         : const Duration(seconds: 1);
 
+    _nextPopupAt = now.add(delay);
+    safeSetState(() {});
     _rescheduleDelayTimer = Timer(delay, () {
       if (!mounted) return;
       unawaited(_runPopupCycle());
@@ -217,11 +235,13 @@ class _LogoutWidgetState extends State<LogoutWidget>
 
   Future<void> _runPopupCycle() async {
     if (!mounted) return;
+    _nextPopupAt = DateTime.now().add(Duration(minutes: _periodMinutes));
+    safeSetState(() {});
     if (FFAppState().isPopupVisible) return;
     if (!isTimeTrackingEnabled()) return;
 
     final periodForPopup = _periodMinutes;
-    print('Timer disparado com intervalo de $periodForPopup minutos!');
+    debugPrint('Timer disparado com intervalo de $periodForPopup minutos!');
 
     _lastPopupAt = DateTime.now();
     FFAppState().isPopupVisible = true;
@@ -271,6 +291,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
       FFAppState().isPopupVisible = false;
       if (mounted) {
         FFAppState().contador = 0;
+        unawaited(_loadWorkedHours());
         safeSetState(() {});
         if (_pendingReschedule) {
           _pendingReschedule = false;
@@ -280,203 +301,244 @@ class _LogoutWidgetState extends State<LogoutWidget>
     }
   }
 
+  Duration get _remaining =>
+      (_nextPopupAt ?? DateTime.now().add(Duration(minutes: _periodMinutes)))
+          .difference(DateTime.now());
+
+  Future<void> _loadWorkedHours() async {
+    if (_hoursLoading) return;
+    final user = _parseUserDataMap()?['user'];
+    final userId = user is Map ? user['id']?.toString() : null;
+    if (userId == null || userId.isEmpty) return;
+    _hoursLoading = true;
+    try {
+      final result = await GetWorkedHoursCall.call(
+        token: currentAuthenticationToken,
+        userId: userId,
+        period: 'today',
+      );
+      final hours = num.tryParse(result.jsonBody.toString());
+      if (mounted && result.succeeded && hours != null && hours.isFinite) {
+        setState(
+            () => _workedHours = hours.toDouble().clamp(0, double.infinity));
+      }
+    } catch (_) {
+      // Keep the last known value while offline.
+    } finally {
+      _hoursLoading = false;
+    }
+  }
+
+  void _registerNow() {
+    if (FFAppState().isPopupVisible || !isTimeTrackingEnabled()) return;
+    // The same capture, popup and desktop-window path as a scheduled record.
+    unawaited(_runPopupCycle());
+    _startPopupTimer(fireImmediately: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
-
-    final rawFirstName = getJsonField(
-      FFAppState().UserData,
-      r'''$.user.first_name''',
-    )?.toString();
-    final rawLastName = getJsonField(
-      FFAppState().UserData,
-      r'''$.user.last_name''',
-    )?.toString();
-
-    String displayName = '';
-    if (rawFirstName != null && rawFirstName.isNotEmpty && rawFirstName != 'null') {
-      displayName = rawFirstName[0].toUpperCase() + rawFirstName.substring(1);
-      if (rawLastName != null && rawLastName.isNotEmpty && rawLastName != 'null') {
-        displayName += ' ${rawLastName[0].toUpperCase()}${rawLastName.substring(1)}';
-      }
-    } else {
-      displayName = 'Usuário';
-    }
-
-    final initial = displayName.trim().isNotEmpty
-        ? displayName.trim()[0].toUpperCase()
-        : 'U';
-
-    final email = FFAppState().email;
+    final user = _parseUserDataMap()?['user'];
+    final nameParts = [
+      if (user is Map) user['first_name']?.toString(),
+      if (user is Map) user['last_name']?.toString(),
+    ].whereType<String>().where((part) => part.isNotEmpty && part != 'null');
+    final displayName = nameParts.isEmpty
+        ? 'Usuário'
+        : nameParts
+            .map((part) => part[0].toUpperCase() + part.substring(1))
+            .join(' ');
+    final enabled = isTimeTrackingEnabled();
+    final progress = ((_workedHours ?? 0) / _dailyGoalHours).clamp(0.0, 1.0);
+    final totalMinutes = ((_workedHours ?? 0) * 60).round();
 
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Align(
-            alignment: Alignment.center,
-            child: Container(
-              width: 500.0,
-              height: 400.0,
-              decoration: BoxDecoration(
-                color: FlutterFlowTheme.of(context).secondaryBackground,
-                boxShadow: const [
-                  BoxShadow(
-                    blurRadius: 4.0,
-                    color: Color(0x33000000),
-                    offset: Offset(0.0, 2.0),
-                  )
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24.0, 20.0, 20.0, 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const ZocLogo(
-                          width: 100.0,
-                          showTagline: false,
-                        ),
-                        Tooltip(
-                          message: 'Ver Registro',
-                          child: FlutterFlowIconButton(
-                            borderRadius: 8.0,
-                            buttonSize: 40.0,
-                            fillColor: FlutterFlowTheme.of(context)
-                                .secondaryBackground,
-                            icon: const Icon(
-                              Icons.assignment_turned_in_outlined,
-                              color: Color(0xFF0F8F8A),
-                              size: 24.0,
-                            ),
-                            onPressed: () async {
-                              context.pushNamed(ExpedienteWidget.routeName);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 72.0,
-                          height: 72.0,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F6F5),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFF0F8F8A).withOpacity(0.35),
-                              width: 2.0,
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            initial,
-                            style: GoogleFonts.inter(
-                              fontSize: 28.0,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF0F8F8A),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14.0),
-                        Text(
-                          displayName,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.inter(
-                            fontSize: 22.0,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF101827),
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 10.0),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14.0,
-                            vertical: 6.0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3F4F6),
-                            borderRadius: BorderRadius.circular(20.0),
-                            border: Border.all(
-                              color: const Color(0xFFE5E7EB),
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.mail_outline_rounded,
-                                size: 14.0,
-                                color: Color(0xFF6B7280),
+      child: ZocAuthScaffold(
+        scaffoldKey: scaffoldKey,
+        panelPadding: const EdgeInsets.all(20),
+        topAction: IconButton(
+          tooltip: 'Sair da conta',
+          onPressed: () => context.pushNamed(ConfirmaLogoutWidget.routeName),
+          icon: const Icon(Icons.logout_rounded,
+              color: ZocColors.muted, size: 19),
+        ),
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: ZocColors.brandSoft,
+                  child: Text(displayName[0].toUpperCase(),
+                      style: ZocText.h3(color: ZocColors.brand)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(displayName, style: ZocText.h3()),
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: enabled ? ZocColors.ok : ZocColors.warn,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: enabled
+                                        ? ZocColors.okSoft
+                                        : ZocColors.warnSoft,
+                                    spreadRadius: 3,
+                                  )
+                                ],
                               ),
-                              const SizedBox(width: 6.0),
-                              Text(
-                                email.isNotEmpty ? email : '---',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13.0,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF4B5563),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                        if (!isTimeTrackingEnabled()) ...[
-                          const SizedBox(height: 10.0),
-                          Text(
-                            'Controle de tempo desativado pelo administrador',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFFB45309),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: Text(
+                              enabled
+                                  ? 'Em expediente · ${FFAppState().isRemote ? 'Trabalho remoto' : 'Presencial'}'
+                                  : 'Controle de tempo desativado pelo administrador',
+                              style: ZocText.sub().copyWith(fontSize: 12.5),
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                    const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Tooltip(
-                          message: 'Sair da conta',
-                          child: FlutterFlowIconButton(
-                            borderRadius: 8.0,
-                            buttonSize: 40.0,
-                            fillColor: FlutterFlowTheme.of(context)
-                                .secondaryBackground,
-                            icon: const Icon(
-                              Icons.login,
-                              color: Color(0xFF0F8F8A),
-                              size: 24.0,
-                            ),
-                            onPressed: () async {
-                              context.pushNamed(ConfirmaLogoutWidget.routeName);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(ZocRadii.heroInner),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [ZocColors.brand, ZocColors.brandInk],
                 ),
               ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Hoje',
+                            style: ZocText.caption(
+                                color:
+                                    ZocColors.surface.withValues(alpha: .8))),
+                        const SizedBox(height: 2),
+                        Text(
+                            _workedHours == null
+                                ? '—'
+                                : '${totalMinutes ~/ 60}h ${(totalMinutes % 60).toString().padLeft(2, '0')}min',
+                            style: ZocText.big(color: ZocColors.surface)),
+                      ],
+                    ),
+                  ),
+                  Semantics(
+                    label:
+                        '${(progress * 100).round()}% da meta de ${_dailyGoalHours.toStringAsFixed(0)} horas',
+                    child: SizedBox.square(
+                      dimension: 64,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned.fill(
+                            child: CircularProgressIndicator(
+                              value: progress,
+                              strokeWidth: 6,
+                              strokeCap: StrokeCap.round,
+                              backgroundColor:
+                                  ZocColors.surface.withValues(alpha: .2),
+                              color: ZocColors.surface,
+                            ),
+                          ),
+                          Text('${(progress * 100).round()}%',
+                              style: ZocText.label(color: ZocColors.surface)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: ZocColors.surface2,
+                borderRadius: BorderRadius.circular(ZocRadii.input),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timer_outlined,
+                      size: 15, color: ZocColors.muted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text.rich(TextSpan(
+                      style: ZocText.sub().copyWith(fontSize: 13),
+                      children: enabled
+                          ? [
+                              const TextSpan(text: 'Próximo registro em  '),
+                              TextSpan(
+                                  text: formatPopupCountdown(_remaining),
+                                  style: ZocText.strong()),
+                            ]
+                          : [
+                              const TextSpan(
+                                  text: 'Registros automáticos pausados')
+                            ],
+                    )),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ZocButton(
+                    'Ver registros',
+                    expanded: true,
+                    variant: ZocButtonVariant.secondary,
+                    icon: Icons.bar_chart_rounded,
+                    onPressed: () =>
+                        context.pushNamed(ExpedienteWidget.routeName),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ZocButton(
+                    'Registrar agora',
+                    expanded: true,
+                    icon: Icons.add_rounded,
+                    onPressed: enabled && !FFAppState().isPopupVisible
+                        ? _registerNow
+                        : null,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

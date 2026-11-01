@@ -1,22 +1,20 @@
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_drop_down.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
 import '/backend/schema/structs/index.dart';
 import '/flutter_flow/custom_functions.dart' as functions;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 import 'popup_dialog_model.dart';
 export 'popup_dialog_model.dart';
 import '/desktop/popup_window.dart';
 import 'dart:async';
-import '/utils/zoc_logo.dart';
+import 'dart:convert' show base64Decode;
+import '/ui/zoc_ui.dart';
+import '/utils/capture_screenshot.dart';
 
 class PopupDialogWidget extends StatefulWidget {
   const PopupDialogWidget({
@@ -35,6 +33,11 @@ class PopupDialogWidget extends StatefulWidget {
 class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   late PopupDialogModel _model;
   Timer? _ignoreTimer;
+  Timer? _countdownTimer;
+  final DateTime _openedAt = DateTime.now();
+  DateTime? _ignoreDeadline;
+  bool _saving = false;
+  Uint8List? _screenshotBytes;
   bool _submitted = false;
   bool _refreshing = false;
 
@@ -70,7 +73,17 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
 
   void _scheduleIgnoreTimer() {
     _ignoreTimer?.cancel();
+    _ignoreDeadline = DateTime.now().add(widget.ignoreAfter);
     _ignoreTimer = Timer(widget.ignoreAfter, _onIgnoreTimeout);
+    safeSetState(() {});
+  }
+
+  void _dismissPopup() {
+    final navigator = Navigator.of(context);
+    final popupRoute = ModalRoute.of(context);
+    // Close any activity picker or validation dialog before the popup itself.
+    if (popupRoute != null) navigator.popUntil((route) => route == popupRoute);
+    navigator.pop();
   }
 
   Future<void> _onIgnoreTimeout() async {
@@ -78,7 +91,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     _submitted = true;
     FFAppState().popUpIgnorado = FFAppState().popUpIgnorado + 1;
     FFAppState().isPopupVisible = false;
-    Navigator.pop(context);
+    _dismissPopup();
     await AddAtivitiesCall.call(
       token: currentAuthenticationToken,
       project: '',
@@ -93,6 +106,14 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => PopupDialogModel());
+    final screenshot = widget.screenshotBase64;
+    if (screenshot != null && screenshot.isNotEmpty) {
+      try {
+        _screenshotBytes = base64Decode(screenshot.split(',').last);
+      } on FormatException {
+        // Preserve the original payload even when its preview is unavailable.
+      }
+    }
 
     FFAppState().isPopupVisible = true;
     FFAppState().taskOptions = [];
@@ -113,11 +134,15 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
           .setAsset('assets/audios/aviso.mp3')
           .then((_) => _model.soundPlayer!.play());
 
+      if (!mounted) return;
       await _model.fetchdata(context);
       if (!mounted) return;
       safeSetState(() {});
     });
 
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) safeSetState(() {});
+    });
     _model.textController ??= TextEditingController();
     _model.textFieldFocusNode ??= FocusNode();
 
@@ -127,707 +152,489 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   @override
   void dispose() {
     _ignoreTimer?.cancel();
+    _countdownTimer?.cancel();
     _model.maybeDispose();
     restoreDesktopWindowAfterPopup();
 
     super.dispose();
   }
 
+  Future<void> _saveRecord() async {
+    if (_saving || _submitted) return;
+    safeSetState(() => _saving = true);
+    try {
+      _model.validate = true;
+      if (_model.formKey.currentState == null ||
+          !_model.formKey.currentState!.validate()) {
+        safeSetState(() => _model.validate = false);
+        return;
+      }
+      if (_model.clientDropDownValue == null ||
+          _model.clientDropDownValue!.isEmpty) {
+        await showDialog(
+          context: context,
+          builder: (alertDialogContext) {
+            return AlertDialog(
+              title: Text('Atenção'),
+              content: Text('Cliente é necessario.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(alertDialogContext),
+                  child: Text('Ok'),
+                ),
+              ],
+            );
+          },
+        );
+        _model.validate = false;
+        safeSetState(() {});
+        return;
+      }
+      if (_model.dropdownprojetosValue == null ||
+          _model.dropdownprojetosValue!.isEmpty) {
+        await showDialog(
+          context: context,
+          builder: (alertDialogContext) {
+            return AlertDialog(
+              title: Text('Atenção'),
+              content: Text('Projeto é necessario.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(alertDialogContext),
+                  child: Text('Ok'),
+                ),
+              ],
+            );
+          },
+        );
+        _model.validate = false;
+        safeSetState(() {});
+        return;
+      }
+      if (_model.dropdownatividadesValue == null ||
+          _model.dropdownatividadesValue!.isEmpty) {
+        await showDialog(
+          context: context,
+          builder: (alertDialogContext) {
+            return AlertDialog(
+              title: Text('Atenção'),
+              content: Text('Tarefa é necessario.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(alertDialogContext),
+                  child: Text('Ok'),
+                ),
+              ],
+            );
+          },
+        );
+        _model.validate = false;
+        safeSetState(() {});
+        return;
+      }
+      _ignoreTimer?.cancel();
+      _submitted = true;
+      _model.apiResult4ww = await AddAtivitiesCall.call(
+        token: currentAuthenticationToken,
+        remote: FFAppState().isRemote,
+        ignoredPopUp: false,
+        tasksList: _model.dropdownatividadesValue,
+        notes: _model.textController.text,
+        createdAt: functions.timeNowTZ(),
+        project: _model.dropdownprojetosValue,
+        screenshot: widget.screenshotBase64,
+      );
+
+      // 403: admin turned time tracking off while the popup was open.
+      if ((_model.apiResult4ww?.succeeded ?? true) ||
+          _model.apiResult4ww?.statusCode == 403) {
+        FFAppState().isPopupVisible = false;
+        if (mounted) _dismissPopup();
+      } else {
+        _submitted = false;
+        if (mounted) {
+          _scheduleIgnoreTimer();
+        }
+      }
+
+      safeSetState(() {});
+    } finally {
+      if (mounted) safeSetState(() => _saving = false);
+    }
+  }
+
+  void _selectActivities(List<String> values) {
+    _model.dropdownatividadesValueController ??=
+        FormListFieldController<String>(null);
+    _model.dropdownatividadesValueController!.value = values;
+    safeSetState(() => _model.dropdownatividadesValue = values);
+  }
+
+  Future<void> _showActivities() async {
+    if (!_model.mostrarActividad || _model.selectedProjects == null) return;
+    final tasks = FFAppState()
+        .taskOptions
+        .map(TaskOptionStruct.maybeFromMap)
+        .withoutNulls
+        .toList();
+    var search = '';
+    await showZocModal(context,
+        builder: (context) => StatefulBuilder(
+              builder: (context, update) => ZocModal(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text('Atividades', style: ZocText.h2()),
+                      const SizedBox(height: 12),
+                      ZocTextField(
+                        hintText: 'Buscar atividades...',
+                        icon: Icons.search_rounded,
+                        onChanged: (value) =>
+                            update(() => search = value.toLowerCase()),
+                      ),
+                      const SizedBox(height: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 240),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (tasks.isEmpty)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                  child: Text(
+                                      'Nenhuma atividade disponível neste projeto.',
+                                      style: ZocText.sub()),
+                                ),
+                              for (final task in tasks.where((task) =>
+                                  task.name.toLowerCase().contains(search)))
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: ZocCheckRow(
+                                    label: task.name,
+                                    value: _model.dropdownatividadesValue
+                                            ?.contains(task.id) ??
+                                        false,
+                                    onChanged: (selected) {
+                                      final values = [
+                                        ...?_model.dropdownatividadesValue
+                                      ];
+                                      selected
+                                          ? values.add(task.id)
+                                          : values.remove(task.id);
+                                      _selectActivities(values);
+                                      update(() {});
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ZocButton('Concluir',
+                          onPressed: () => Navigator.pop(context)),
+                    ],
+                  ),
+                ),
+              ),
+            ));
+  }
+
+  Widget _activitiesField() {
+    final selected = _model.dropdownatividadesValue ?? <String>[];
+    final tasks = FFAppState()
+        .taskOptions
+        .map(TaskOptionStruct.maybeFromMap)
+        .withoutNulls;
+    final enabled = _model.mostrarActividad && _model.selectedProjects != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Atividades', style: ZocText.label()),
+        const SizedBox(height: 6),
+        Material(
+          color: ZocColors.inputFill,
+          borderRadius: BorderRadius.circular(ZocRadii.input),
+          child: InkWell(
+            onTap: enabled ? _showActivities : null,
+            borderRadius: BorderRadius.circular(ZocRadii.input),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        for (final id in selected)
+                          InputChip(
+                            label: Text(
+                                tasks
+                                        .where((task) => task.id == id)
+                                        .firstOrNull
+                                        ?.name ??
+                                    id,
+                                style: ZocText.caption(
+                                    color: ZocColors.brandInk,
+                                    weight: FontWeight.w600)),
+                            backgroundColor: ZocColors.brandSoft,
+                            side: BorderSide.none,
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            labelPadding: const EdgeInsets.only(left: 2),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            deleteIcon: const Icon(Icons.close_rounded,
+                                size: 13, color: ZocColors.brandInk),
+                            onDeleted: () =>
+                                _selectActivities([...selected]..remove(id)),
+                          ),
+                        Text(
+                            selected.isEmpty
+                                ? 'Escolha as atividades'
+                                : 'Adicionar...',
+                            style: ZocText.body(color: ZocColors.faint)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 20, color: ZocColors.faint),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
+    final remaining = (_ignoreDeadline ?? _openedAt.add(widget.ignoreAfter))
+        .difference(DateTime.now());
+    final seconds = remaining.inSeconds.clamp(0, 1 << 31);
+    final closesIn =
+        '${(seconds ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}';
+    final projects = FFAppState()
+        .projectOptions
+        .map(ProjectOptionStruct.maybeFromMap)
+        .withoutNulls
+        .where((project) => project.clientId == _model.selectedClient)
+        .toList();
+    final hasScreenshot = widget.screenshotBase64?.isNotEmpty == true;
 
-    return Align(
-      alignment: AlignmentDirectional(0.0, 0.0),
-      child: Container(
-        width: 500.0,
-        height: 570.4,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Color(0xFFF6F8FA),
-              Color(0xFFE6F4F3),
-              Color(0xFFD5F0EE),
-            ],
-            stops: [0.0, 0.4, 0.75, 1.0],
-            begin: AlignmentDirectional(-1.0, -1.0),
-            end: AlignmentDirectional(1.0, 1.0),
-          ),
-          borderRadius: BorderRadius.only(
-            bottomLeft: Radius.circular(0.0),
-            bottomRight: Radius.circular(0.0),
-            topLeft: Radius.circular(0.0),
-            topRight: Radius.circular(0.0),
-          ),
-        ),
-        alignment: AlignmentDirectional(0.0, 0.0),
-        child: Align(
-          alignment: AlignmentDirectional(0.0, 0.0),
-          child: Form(
-            key: _model.formKey,
-            autovalidateMode: AutovalidateMode.always,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Align(
-                    alignment: AlignmentDirectional(0.0, 0.0),
-                    child: Padding(
-                      padding:
-                          EdgeInsetsDirectional.fromSTEB(20.0, 0.0, 20.0, 0.0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Align(
-                            alignment: AlignmentDirectional(-1.0, -1.0),
-                            child: Padding(
-                              padding: EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 8.0),
-                              child: const ZocLogo(
-                                width: 100.0,
-                                showTagline: false,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Atualizar clientes e projetos',
-                            onPressed: _refreshing ? null : _refreshOptions,
-                            icon: _refreshing
-                                ? const SizedBox(
-                                    width: 20.0,
-                                    height: 20.0,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.0,
-                                      color: Color(0xFF0F8F8A),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.refresh,
-                                    color: Color(0xFF0F8F8A),
-                                    size: 24.0,
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'No que está trabalhando?',
-                    style: FlutterFlowTheme.of(context).bodyMedium.override(
-                          font: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            fontStyle: FlutterFlowTheme.of(context)
-                                .bodyMedium
-                                .fontStyle,
-                          ),
-                          color: const Color(0xFF101827),
-                          fontSize: 22.0,
-                          letterSpacing: -0.2,
-                          fontWeight: FontWeight.w600,
-                          fontStyle:
-                              FlutterFlowTheme.of(context).bodyMedium.fontStyle,
-                        ),
-                  ),
-                  Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(0.0, 16.0, 0.0, 0.0),
-                    child: FlutterFlowDropDown<String>(
-                      controller: _model.clientDropDownValueController ??=
-                          FormFieldController<String>(null),
-                      options: List<String>.from(FFAppState()
-                          .clientsOptions
-                          .map((e) => e.id)
-                          .toList()),
-                      optionLabels: FFAppState()
-                          .clientsOptions
-                          .map((e) => e.name)
-                          .toList(),
-                      onChanged: (val) async {
-                        safeSetState(() => _model.clientDropDownValue = val);
-                        _model.selectedClient = _model.clientDropDownValue;
-                        _model.dropdownprojetosValue = null;
-                        _model.selectedProjects = null;
-                        _model.dropdownprojetosValueController?.value = null;
-                        _model.dropdownatividadesValue = null;
-                        _model.dropdownatividadesValueController?.value = null;
-                        FFAppState().taskOptions = [];
-                        safeSetState(() {});
-                      },
-                      width: 400.0,
-                      height: 35.0,
-                      maxHeight: 200.0,
-                      searchHintTextStyle:
-                          FlutterFlowTheme.of(context).labelMedium.override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .labelMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .labelMedium
-                                      .fontStyle,
-                                ),
-                                fontSize: 14.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .labelMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .labelMedium
-                                    .fontStyle,
-                              ),
-                      searchTextStyle:
-                          FlutterFlowTheme.of(context).bodyMedium.override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                                letterSpacing: 0.0,
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontStyle,
-                              ),
-                      textStyle:
-                          FlutterFlowTheme.of(context).bodyMedium.override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                                color: Color(0xFF101827),
-                                fontSize: 14.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.w500,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontStyle,
-                                lineHeight: 0.5,
-                              ),
-                      hintText: 'Escolha os clientes',
-                      searchHintText: 'Search...',
-                      searchCursorColor:
-                          FlutterFlowTheme.of(context).primaryBackground,
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Color(0xFF0F8F8A),
-                        size: 25.0,
-                      ),
-                      fillColor: FlutterFlowTheme.of(context).primaryBackground,
-                      elevation: 1.0,
-                      borderColor:
-                          FlutterFlowTheme.of(context).secondaryBackground,
-                      borderWidth: 0.0,
-                      borderRadius: 6.0,
-                      margin:
-                          EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
-                      hidesUnderline: true,
-                      isOverButton: false,
-                      isSearchable: true,
-                      isMultiSelect: false,
-                    ),
-                  ),
-                  if ((FFAppState().projectOptions.isNotEmpty) == true)
-                    Padding(
-                      padding:
-                          EdgeInsetsDirectional.fromSTEB(0.0, 15.0, 0.0, 0.0),
-                      child: FlutterFlowDropDown<String>(
-                        controller: _model.dropdownprojetosValueController ??=
-                            FormFieldController<String>(null),
-                        options: List<String>.from(FFAppState()
-                            .projectOptions
-                            .where((e) =>
-                                ProjectOptionStruct.maybeFromMap(e)?.clientId ==
-                                _model.clientDropDownValue)
-                            .toList()
-                            .map((e) => ProjectOptionStruct.maybeFromMap(e)?.id)
-                            .withoutNulls
-                            .toList()),
-                        optionLabels: FFAppState()
-                            .projectOptions
-                            .where((e) =>
-                                ProjectOptionStruct.maybeFromMap(e)?.clientId ==
-                                _model.selectedClient)
-                            .toList()
-                            .map((e) =>
-                                ProjectOptionStruct.maybeFromMap(e)?.name)
-                            .withoutNulls
-                            .toList(),
-                        onChanged: (val) async {
-                          safeSetState(
-                              () => _model.dropdownprojetosValue = val);
-                          _model.selectedProjects =
-                              _model.dropdownprojetosValue;
-                          _model.dropdownatividadesValue = null;
-                          _model.dropdownatividadesValueController?.value =
-                              null;
-                          FFAppState().taskOptions = [];
-                          safeSetState(() {});
-                          _model.activities =
-                              await GetAtivitiesByProjectCall.call(
-                            token: currentAuthenticationToken,
-                            id: _model.selectedProjects,
-                          );
-
-                          if ((_model.activities?.succeeded ?? true)) {
-                            FFAppState().taskOptions =
-                                (_model.activities?.jsonBody is List
-                                        ? _model.activities!.jsonBody as List
-                                        : const [])
-                                    .toList()
-                                    .cast<dynamic>();
-                            safeSetState(() {});
-                          }
-
-                          safeSetState(() {});
-                        },
-                        width: 400.0,
-                        height: 35.0,
-                        maxHeight: 200.0,
-                        searchHintTextStyle:
-                            FlutterFlowTheme.of(context).labelMedium.override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                  ),
-                                  fontSize: 14.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .labelMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .labelMedium
-                                      .fontStyle,
-                                ),
-                        searchTextStyle:
-                            FlutterFlowTheme.of(context).bodyMedium.override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                ),
-                        textStyle:
-                            FlutterFlowTheme.of(context).bodyMedium.override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                                  color: Color(0xFF101827),
-                                  fontSize: 14.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.w500,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .fontStyle,
-                                  lineHeight: 0.5,
-                                ),
-                        hintText: 'Escolha os projetos',
-                        searchHintText: 'Search...',
-                        searchCursorColor:
-                            FlutterFlowTheme.of(context).primaryBackground,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Color(0xFF0F8F8A),
-                          size: 25.0,
-                        ),
-                        fillColor:
-                            FlutterFlowTheme.of(context).primaryBackground,
-                        elevation: 1.0,
-                        borderColor:
-                            FlutterFlowTheme.of(context).secondaryBackground,
-                        borderWidth: 0.0,
-                        borderRadius: 6.0,
-                        margin: EdgeInsetsDirectional.fromSTEB(
-                            12.0, 0.0, 12.0, 0.0),
-                        hidesUnderline: true,
-                        isOverButton: false,
-                        isSearchable: true,
-                        isMultiSelect: false,
-                      ),
-                    ),
-                  if (_model.selectedProjects != null &&
-                      _model.selectedProjects!.isNotEmpty &&
-                      FFAppState().taskOptions.isNotEmpty)
-                    Align(
-                      alignment: AlignmentDirectional(0.0, 0.0),
-                      child: Padding(
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(0.0, 15.0, 0.0, 0.0),
-                        child: FlutterFlowDropDown<String>(
-                          multiSelectController:
-                              _model.dropdownatividadesValueController ??=
-                                  FormListFieldController<String>(null),
-                          options: List<String>.from(FFAppState()
-                              .taskOptions
-                              .map((e) => TaskOptionStruct.maybeFromMap(e)?.id)
-                              .withoutNulls
-                              .toList()),
-                          optionLabels: FFAppState()
-                              .taskOptions
-                              .map((e) => TaskOptionStruct.maybeFromMap(e))
-                              .withoutNulls
-                              .map((e) => e.name)
-                              .toList(),
-                          width: 400.0,
-                          height: 35.0,
-                          maxHeight: 200.0,
-                          searchHintTextStyle:
-                              FlutterFlowTheme.of(context).labelMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontStyle,
-                                    ),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                    lineHeight: 0.5,
-                                  ),
-                          searchTextStyle:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                          textStyle:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    fontSize: 14.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w500,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                  ),
-                          hintText: 'Escolha as Atividades',
-                          searchHintText: 'Search...',
-                          icon: Icon(
-                            Icons.keyboard_arrow_down_sharp,
-                            color: Color(0xFF0F8F8A),
-                            size: 25.0,
-                          ),
-                          fillColor:
-                              FlutterFlowTheme.of(context).primaryBackground,
-                          elevation: 1.0,
-                          borderColor:
-                              FlutterFlowTheme.of(context).secondaryBackground,
-                          borderWidth: 0.0,
-                          borderRadius: 6.0,
-                          margin: EdgeInsetsDirectional.fromSTEB(
-                              12.0, 0.0, 12.0, 0.0),
-                          hidesUnderline: true,
-                          disabled: _model.mostrarActividad == false,
-                          isOverButton: true,
-                          isSearchable: true,
-                          isMultiSelect: true,
-                          onMultiSelectChanged: (val) => safeSetState(
-                              () => _model.dropdownatividadesValue = val),
+    return SizedBox(
+      width: 510,
+      height: 600,
+      child: Material(
+        color: ZocColors.background,
+        child: ZocBackground(
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Row(
+                    children: [
+                      const ZocHeroIcon(Icons.timer_outlined, small: true),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('No que está trabalhando?',
+                                style: ZocText.h3()),
+                            const SizedBox(height: 2),
+                            Text(
+                                'Registro das ${DateFormat('HH:mm').format(_openedAt)} · fecha sozinho em $closesIn',
+                                style:
+                                    ZocText.caption().copyWith(fontSize: 12.5)),
+                          ],
                         ),
                       ),
-                    ),
-                  Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(0.0, 15.0, 0.0, 0.0),
-                    child: SizedBox(
-                      width: 400.0,
-                      child: TextFormField(
-                        controller: _model.textController,
-                        focusNode: _model.textFieldFocusNode,
-                        autofocus: false,
-                        obscureText: false,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          labelStyle:
-                              FlutterFlowTheme.of(context).labelMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                  ),
-                          hintText: 'Notas',
-                          hintStyle:
-                              FlutterFlowTheme.of(context).labelMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .labelMedium
-                                          .fontStyle,
-                                    ),
-                                    color: Color(0xFF101827),
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelMedium
-                                        .fontStyle,
-                                  ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0x00000000),
-                              width: 1.0,
-                            ),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: Color(0x00000000),
-                              width: 1.0,
-                            ),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: FlutterFlowTheme.of(context).error,
-                              width: 1.0,
-                            ),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: FlutterFlowTheme.of(context).error,
-                              width: 1.0,
-                            ),
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          filled: true,
-                          fillColor:
-                              FlutterFlowTheme.of(context).primaryBackground,
-                        ),
-                        style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              font: GoogleFonts.inter(
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontStyle,
-                              ),
-                              color: Color(0xFF101827),
-                              letterSpacing: 0.0,
-                              fontWeight: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .fontWeight,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .fontStyle,
-                            ),
-                        maxLines: 3,
-                        cursorColor: FlutterFlowTheme.of(context).primaryText,
-                        validator:
-                            _model.textControllerValidator.asValidator(context),
+                      IconButton(
+                        tooltip: 'Atualizar clientes e projetos',
+                        constraints: const BoxConstraints.tightFor(
+                            width: 32, height: 32),
+                        padding: EdgeInsets.zero,
+                        onPressed: _refreshing ? null : _refreshOptions,
+                        icon: _refreshing
+                            ? const SizedBox.square(
+                                dimension: 17,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: ZocColors.brand))
+                            : const Icon(Icons.refresh_rounded,
+                                color: ZocColors.muted, size: 20),
                       ),
-                    ),
+                    ],
                   ),
-                  Align(
-                    alignment: AlignmentDirectional(0.0, 1.0),
-                    child: Padding(
-                      padding:
-                          EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 0.0),
-                      child: FFButtonWidget(
-                        onPressed: () async {
-                          _model.validate = true;
-                          if (_model.formKey.currentState == null ||
-                              !_model.formKey.currentState!.validate()) {
-                            safeSetState(() => _model.validate = false);
-                            return;
-                          }
-                          if (_model.clientDropDownValue == null ||
-                              _model.clientDropDownValue!.isEmpty) {
-                            await showDialog(
-                              context: context,
-                              builder: (alertDialogContext) {
-                                return AlertDialog(
-                                  title: Text('Atenção'),
-                                  content: Text('Cliente é necessario.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(alertDialogContext),
-                                      child: Text('Ok'),
-                                    ),
-                                  ],
-                                );
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: ZocCard(
+                      child: Form(
+                        key: _model.formKey,
+                        autovalidateMode: AutovalidateMode.always,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ZocSelect<String>(
+                              label: 'Cliente',
+                              dropDownKey: const ValueKey('popup-client'),
+                              icon: Icons.business_outlined,
+                              hintText: 'Escolha o cliente',
+                              isSearchable: true,
+                              controller:
+                                  _model.clientDropDownValueController ??=
+                                      FormFieldController<String>(null),
+                              options: FFAppState()
+                                  .clientsOptions
+                                  .map((client) => client.id)
+                                  .toList(),
+                              optionLabels: FFAppState()
+                                  .clientsOptions
+                                  .map((client) => client.name)
+                                  .toList(),
+                              onChanged: (value) {
+                                _model.clientDropDownValue = value;
+                                _model.selectedClient = value;
+                                _model.dropdownprojetosValue = null;
+                                _model.selectedProjects = null;
+                                _model.dropdownprojetosValueController?.value =
+                                    null;
+                                _model.dropdownatividadesValue = null;
+                                _model.dropdownatividadesValueController
+                                    ?.value = null;
+                                FFAppState().taskOptions = [];
+                                safeSetState(() {});
                               },
-                            );
-                            _model.validate = false;
-                            safeSetState(() {});
-                            return;
-                          }
-                          if (_model.dropdownprojetosValue == null ||
-                              _model.dropdownprojetosValue!.isEmpty) {
-                            await showDialog(
-                              context: context,
-                              builder: (alertDialogContext) {
-                                return AlertDialog(
-                                  title: Text('Atenção'),
-                                  content: Text('Projeto é necessario.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(alertDialogContext),
-                                      child: Text('Ok'),
-                                    ),
-                                  ],
+                            ),
+                            const SizedBox(height: 11),
+                            ZocSelect<String>(
+                              label: 'Projeto',
+                              dropDownKey: const ValueKey('popup-project'),
+                              icon: Icons.work_outline_rounded,
+                              hintText: 'Escolha o projeto',
+                              isSearchable: true,
+                              disabled: _model.selectedClient == null,
+                              controller:
+                                  _model.dropdownprojetosValueController ??=
+                                      FormFieldController<String>(null),
+                              options: projects
+                                  .map((project) => project.id)
+                                  .toList(),
+                              optionLabels: projects
+                                  .map((project) => project.name)
+                                  .toList(),
+                              onChanged: (value) async {
+                                _model.dropdownprojetosValue = value;
+                                _model.selectedProjects = value;
+                                _model.dropdownatividadesValue = null;
+                                _model.dropdownatividadesValueController
+                                    ?.value = null;
+                                FFAppState().taskOptions = [];
+                                safeSetState(() {});
+                                _model.activities =
+                                    await GetAtivitiesByProjectCall.call(
+                                  token: currentAuthenticationToken,
+                                  id: _model.selectedProjects,
                                 );
+                                if (!mounted) return;
+                                if (_model.activities?.succeeded ?? true) {
+                                  FFAppState().taskOptions = (_model
+                                              .activities?.jsonBody is List
+                                          ? _model.activities!.jsonBody as List
+                                          : const [])
+                                      .toList()
+                                      .cast<dynamic>();
+                                }
+                                safeSetState(() {});
                               },
-                            );
-                            _model.validate = false;
-                            safeSetState(() {});
-                            return;
-                          }
-                          if (_model.dropdownatividadesValue == null ||
-                              _model.dropdownatividadesValue!.isEmpty) {
-                            await showDialog(
-                              context: context,
-                              builder: (alertDialogContext) {
-                                return AlertDialog(
-                                  title: Text('Atenção'),
-                                  content: Text('Tarefa é necessario.'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(alertDialogContext),
-                                      child: Text('Ok'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                            _model.validate = false;
-                            safeSetState(() {});
-                            return;
-                          }
-                          _ignoreTimer?.cancel();
-                          _submitted = true;
-                          _model.apiResult4ww = await AddAtivitiesCall.call(
-                            token: currentAuthenticationToken,
-                            remote: FFAppState().isRemote,
-                            ignoredPopUp: false,
-                            tasksList: _model.dropdownatividadesValue,
-                            notes: _model.textController.text,
-                            createdAt: functions.timeNowTZ(),
-                            project: _model.dropdownprojetosValue,
-                            screenshot: widget.screenshotBase64,
-                          );
-
-                          // 403: admin turned time tracking off while the popup was open.
-                          if ((_model.apiResult4ww?.succeeded ?? true) ||
-                              _model.apiResult4ww?.statusCode == 403) {
-                            FFAppState().isPopupVisible = false;
-                            Navigator.pop(context);
-                          } else {
-                            _submitted = false;
-                            if (mounted) {
-                              _scheduleIgnoreTimer();
-                            }
-                          }
-
-                          safeSetState(() {});
-                        },
-                        text: 'ACEITAR',
-                        options: FFButtonOptions(
-                          width: 140.0,
-                          height: 50.0,
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              16.0, 0.0, 16.0, 0.0),
-                          iconPadding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 0.0, 0.0, 0.0),
-                          color: Color(0xFF0F8F8A),
-                          textStyle: FlutterFlowTheme.of(context)
-                              .displayMedium
-                              .override(
-                                font: GoogleFonts.inter(
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .displayMedium
-                                      .fontStyle,
+                            ),
+                            const SizedBox(height: 11),
+                            _activitiesField(),
+                            const SizedBox(height: 11),
+                            ZocTextField(
+                              label: 'Notas (opcional)',
+                              hintText: 'Algo que ajude a lembrar depois...',
+                              controller: _model.textController,
+                              focusNode: _model.textFieldFocusNode,
+                              maxLines: 2,
+                              validator: _model.textControllerValidator
+                                  .asValidator(context),
+                            ),
+                            const SizedBox(height: 11),
+                            ZocToggleRow(
+                              title: 'Trabalho remoto',
+                              help: 'Hoje estou fora do escritório',
+                              value: FFAppState().isRemote,
+                              onChanged: (value) => FFAppState()
+                                  .update(() => FFAppState().isRemote = value),
+                            ),
+                            const SizedBox(height: 11),
+                            Row(
+                              children: [
+                                const Icon(Icons.camera_alt_outlined,
+                                    size: 15, color: ZocColors.brand),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                      hasScreenshot
+                                          ? 'Captura de tela será anexada'
+                                          : areScreenshotsEnabled()
+                                              ? 'Sem captura de tela neste registro'
+                                              : 'Captura de tela desativada',
+                                      style: ZocText.caption()),
                                 ),
-                                color: FlutterFlowTheme.of(context)
-                                    .secondaryBackground,
-                                fontSize: 14.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.bold,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .displayMedium
-                                    .fontStyle,
-                              ),
-                          elevation: 0.0,
-                          borderRadius: BorderRadius.circular(12.0),
+                                if (_screenshotBytes != null)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.memory(
+                                      _screenshotBytes!,
+                                      width: 54,
+                                      height: 32,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox(width: 54, height: 32),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
-                        showLoadingIndicator: true,
                       ),
                     ),
                   ),
-                ]
-                    .addToStart(SizedBox(height: 20.0))
-                    .addToEnd(SizedBox(height: 20.0)),
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ZocButton('Ignorar',
+                          variant: ZocButtonVariant.ghost,
+                          onPressed: _saving ? null : _onIgnoreTimeout),
+                      ZocButton('Salvar registro',
+                          icon: Icons.check_rounded,
+                          loading: _saving,
+                          onPressed: _saveRecord),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
