@@ -1,28 +1,44 @@
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/backend/schema/structs/index.dart';
-import '/flutter_flow/flutter_flow_data_table.dart';
-import '/flutter_flow/flutter_flow_icon_button.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
-import '/pages/not_ativities/not_ativities_widget.dart';
 import '/custom_code/actions/index.dart' as actions;
-import '/flutter_flow/custom_functions.dart' as functions;
-import 'package:aligned_tooltip/aligned_tooltip.dart';
+import '/ui/zoc_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '/utils/disclaimer_banner.dart';
 import '/desktop/add_time_dialog.dart';
 import 'expediente_model.dart';
 export 'expediente_model.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io' show Platform;
+
+/// "3h 30min", "1h 00min" or "20min".
+String expedienteHoursLabel(double? hours) {
+  final total = ((hours ?? 0) * 60).round().clamp(0, 1 << 31);
+  final h = total ~/ 60, m = total % 60;
+  if (h == 0) return '${m}min';
+  return '${h}h ${m.toString().padLeft(2, '0')}min';
+}
+
+/// Goal label: "8h", "7h 30min".
+String _goalLabel(double hours) {
+  if (hours == hours.roundToDouble()) return '${hours.round()}h';
+  return expedienteHoursLabel(hours);
+}
+
+/// Weekdays (Mon–Fri) between [a] and [b], inclusive; at least 1.
+int _weekdays(DateTime a, DateTime b) {
+  var start = DateTime(a.year, a.month, a.day);
+  var end = DateTime(b.year, b.month, b.day);
+  if (end.isBefore(start)) (start, end) = (end, start);
+  var count = 0;
+  for (var d = start; !d.isAfter(end); d = DateTime(d.year, d.month, d.day + 1)) {
+    if (d.weekday <= DateTime.friday) count++;
+  }
+  return count < 1 ? 1 : count;
+}
 
 class ExpedienteWidget extends StatefulWidget {
   const ExpedienteWidget({super.key});
@@ -38,6 +54,9 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   late ExpedienteModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  bool _loading = true;
+  int _loadSeq = 0;
 
   @override
   void initState() {
@@ -56,53 +75,9 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
       _model.firstName = getJsonField(
         FFAppState().UserData,
         r'''$.user.first_name''',
-      ).toString().toString();
+      ).toString();
       safeSetState(() {});
-      await Future.wait([
-        Future(() async {
-          _model.getDayWorkedHoursRow = await GetWorkedHoursCall.call(
-            token: currentAuthenticationToken,
-            userId: UserDataStruct.maybeFromMap(FFAppState().UserData)?.user.id,
-            period: 'today',
-          );
-
-          if ((_model.getDayWorkedHoursRow?.succeeded ?? true)) {
-            _model.workedHours =
-                castToType<double>(_model.getDayWorkedHoursRow?.jsonBody);
-            safeSetState(() {});
-          } else {
-            return;
-          }
-        }),
-        Future(() async {
-          _model.getTaskDoneByDayRowResp = await GetTaskDoneByUserCall.call(
-            token: currentAuthenticationToken,
-            userId: UserDataStruct.maybeFromMap(FFAppState().UserData)?.user.id,
-            period: 'day',
-          );
-
-          _model.tasksDone = (_model.getTaskDoneByDayRowResp?.jsonBody is List)
-              ? _model.getTaskDoneByDayRowResp!.jsonBody
-              : <dynamic>[];
-          safeSetState(() {});
-        }),
-        Future(() async {
-          _model.ignoredPopups = await IgnoredPopUpsCall.call(
-            id: getJsonField(
-              FFAppState().UserData,
-              r'''$.user.id''',
-            ).toString().toString(),
-            period: 'day',
-            token: currentAuthenticationToken,
-          );
-
-          if ((_model.ignoredPopups?.succeeded ?? true)) {
-            _model.ignoredPopUps =
-                IgnoredPopUpsCall.count(_model.ignoredPopups);
-            safeSetState(() {});
-          }
-        }),
-      ]);
+      await _load('day');
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
@@ -118,111 +93,242 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
     super.dispose();
   }
 
-  Widget _buildDateField({
-    required String label,
-    required DateTime? value,
-    required Future<void> Function() onTap,
-  }) {
-    final hasValue = value != null;
-    return InkWell(
-      borderRadius: BorderRadius.circular(8.0),
-      onTap: onTap,
-      child: Container(
-        height: 40.0,
-        padding: EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 10.0, 0.0),
-        decoration: BoxDecoration(
-          color: FlutterFlowTheme.of(context).secondaryBackground,
-          borderRadius: BorderRadius.circular(8.0),
-          border: Border.all(
-            color: hasValue ? Color(0xFF0F8F8A) : Color(0x3F0F8F8A),
-            width: 1.0,
-          ),
+  /// Loads worked hours, tasks done, ignored popups and the work goal for
+  /// [period] ('day', 'week', 'month' or 'range' with [start] / [end]).
+  /// Responses of an older selection are ignored.
+  Future<void> _load(String period, {DateTime? start, DateTime? end}) async {
+    final seq = ++_loadSeq;
+    bool current() => mounted && seq == _loadSeq;
+    final token = currentAuthenticationToken;
+    final userId = UserDataStruct.maybeFromMap(FFAppState().UserData)?.user.id;
+    final rawUserId = getJsonField(
+      FFAppState().UserData,
+      r'''$.user.id''',
+    ).toString();
+    final startDate = start?.toString() ?? '';
+    final endDate = end?.toString() ?? '';
+    // Worked hours call "today" what the other endpoints call "day".
+    final hoursPeriod = period == 'day' ? 'today' : period;
+    final goalPeriod = period == 'range' ? 'today' : hoursPeriod;
+
+    await Future.wait([
+      Future(() async {
+        final response = await GetWorkedHoursCall.call(
+          token: token,
+          userId: userId,
+          period: hoursPeriod,
+          startDate: startDate,
+          endDate: endDate,
+        );
+        if (!current()) return;
+        _model.workedHoursResp = response;
+        final body = getJsonField(response.jsonBody, r'''$''');
+        if (response.succeeded && body is num) {
+          _model.workedHours = body.toDouble();
+          safeSetState(() {});
+        }
+      }),
+      Future(() async {
+        final response = await GetTaskDoneByUserCall.call(
+          token: token,
+          userId: userId,
+          period: period,
+          startDate: startDate,
+          endDate: endDate,
+        );
+        if (!current()) return;
+        _model.tasksDoneResp = response;
+        final body = getJsonField(response.jsonBody, r'''$''');
+        _model.tasksDone = body is List ? body : <dynamic>[];
+        safeSetState(() {});
+      }),
+      Future(() async {
+        final response = await IgnoredPopUpsCall.call(
+          id: rawUserId,
+          period: period,
+          token: token,
+          startDate: startDate,
+          endDate: endDate,
+        );
+        if (!current()) return;
+        _model.ignoredPopupsResp = response;
+        if (response.succeeded) {
+          _model.ignoredPopUps = IgnoredPopUpsCall.count(response);
+          safeSetState(() {});
+        }
+      }),
+      Future(() async {
+        final response = await GetWorkGoalCall.call(
+          token: token,
+          userId: userId,
+          period: goalPeriod,
+        );
+        if (!current()) return;
+        _model.workGoalResp = response;
+        var goal = GetWorkGoalCall.goalHours(response, goalPeriod);
+        if (period == 'range' && start != null && end != null) {
+          goal *= _weekdays(start, end);
+        }
+        _model.goalHours = goal;
+        safeSetState(() {});
+      }),
+    ]);
+    if (current()) safeSetState(() => _loading = false);
+  }
+
+  Future<void> _selectPeriod(int index) async {
+    _model.endDate = null;
+    _model.initDate = null;
+    _model.day = index == 0;
+    _model.week = index == 1;
+    _model.month = index == 2;
+    safeSetState(() {});
+    await _load(const ['day', 'week', 'month'][index]);
+  }
+
+  Future<DateTime?> _showDatePicker() => showDatePicker(
+        context: context,
+        initialDate: getCurrentTimestamp,
+        firstDate: DateTime(1900),
+        lastDate: DateTime(2050),
+        builder: (context, child) => wrapInMaterialDatePickerTheme(
+          context,
+          child!,
+          headerBackgroundColor: ZocColors.brand,
+          headerForegroundColor: Colors.white,
+          headerTextStyle: ZocText.title(color: Colors.white)
+              .copyWith(fontSize: 32, fontWeight: FontWeight.w600),
+          pickerBackgroundColor: ZocColors.surface,
+          pickerForegroundColor: ZocColors.text,
+          selectedDateTimeBackgroundColor: ZocColors.brand,
+          selectedDateTimeForegroundColor: Colors.white,
+          actionButtonForegroundColor: ZocColors.text,
+          iconSize: 24.0,
         ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              color: Color(0xFF0F8F8A),
-              size: 16.0,
-            ),
-            SizedBox(width: 8.0),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w500,
-                color: FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-            Spacer(),
-            Text(
-              hasValue
-                  ? dateTimeFormat(
-                      "dd/MM/yyyy",
-                      value,
-                      locale: FFLocalizations.of(context).languageCode,
-                    )
-                  : 'Selecionar',
-              style: GoogleFonts.inter(
-                fontSize: 13.0,
-                fontWeight: hasValue ? FontWeight.w600 : FontWeight.normal,
-                color: hasValue
-                    ? Color(0xFF101827)
-                    : FlutterFlowTheme.of(context).secondaryText,
-              ),
-            ),
-          ],
-        ),
+      );
+
+  Future<void> _pickStart() async {
+    final picked = await _showDatePicker();
+    if (picked != null) {
+      _model.datePicked1 = DateTime(picked.year, picked.month, picked.day);
+    } else if (_model.datePicked1 != null) {
+      _model.datePicked1 = getCurrentTimestamp;
+    }
+    _model.initDate = _model.datePicked1;
+    safeSetState(() {});
+  }
+
+  Future<void> _pickEnd() async {
+    final picked = await _showDatePicker();
+    if (picked != null) {
+      _model.datePicked2 = DateTime(picked.year, picked.month, picked.day);
+    } else if (_model.datePicked2 != null) {
+      _model.datePicked2 = getCurrentTimestamp;
+    }
+    _model.endDate = _model.datePicked2;
+    safeSetState(() {});
+    // Range queries need both dates; otherwise the API gets the literal
+    // "null" and returns 500.
+    if (_model.initDate == null || _model.endDate == null) return;
+    await _load('range', start: _model.initDate, end: _model.endDate);
+  }
+
+  Future<void> _clearRange() async {
+    _model.endDate = null;
+    _model.initDate = null;
+    _model.day = true;
+    _model.week = false;
+    _model.month = false;
+    safeSetState(() {});
+    await _load('day');
+  }
+
+  Future<void> _exportPdf() async {
+    await actions.generatePDF(
+      getJsonField(
+        _model.tasksDone,
+        r'''$''',
+        true,
       ),
+      formatNumber(
+        TaskDoneStruct.maybeFromMap(getJsonField(
+          _model.tasksDone,
+          r'''$.hours''',
+        ).toString())
+            ?.hours,
+        formatType: FormatType.decimal,
+      ),
+      getJsonField(
+        _model.tasksDone,
+        r'''$.task_name''',
+      ).toString(),
+      getJsonField(
+        _model.tasksDone,
+        r'''$.project_name''',
+      ).toString(),
+      getJsonField(
+        _model.tasksDone,
+        r'''$.entry_date''',
+      ).toString(),
+      dateTimeFormat(
+        "d/M/y",
+        TaskDoneStruct.maybeFromMap(getJsonField(
+          _model.tasksDone,
+          r'''$.created_at''',
+        ).toString())
+            ?.endDate,
+        locale: FFLocalizations.of(context).languageCode,
+      ),
+      dateTimeFormat(
+        "d/M/y",
+        TaskDoneStruct.maybeFromMap(getJsonField(
+          _model.tasksDone,
+          r'''$.ended_at''',
+        ).toString())
+            ?.endDate,
+        locale: FFLocalizations.of(context).languageCode,
+      ),
+      getJsonField(
+        _model.tasksDone,
+        r'''$.client_name''',
+      ).toString(),
+      getJsonField(
+        _model.tasksDone,
+        r'''$.user_name''',
+      ).toString(),
+      _model.ignoredPopUps?.toString(),
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Container(
-      padding: EdgeInsetsDirectional.fromSTEB(12.0, 10.0, 12.0, 10.0),
-      decoration: BoxDecoration(
-        color: FlutterFlowTheme.of(context).secondaryBackground,
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: Color(0x3F0F8F8A), width: 1.0),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: Color(0xFF0F8F8A), size: 16.0),
-              SizedBox(width: 6.0),
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w500,
-                    color: FlutterFlowTheme.of(context).secondaryText,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 6.0),
-          Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 20.0,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF101827),
-            ),
-          ),
-        ],
-      ),
-    );
+  String get _locale => FFLocalizations.of(context).languageCode;
+
+  List<Map> get _tasks => (_model.tasksDone is List
+          ? (_model.tasksDone as List)
+          : const [])
+      .whereType<Map>()
+      .toList();
+
+  bool get _customRange => _model.initDate != null || _model.endDate != null;
+
+  /// Dates covered by Dia / Semana (Mon–Sun) / Mês, as the API resolves them.
+  (DateTime, DateTime) _periodBounds() {
+    final now = FFAppState().currentDate ?? getCurrentTimestamp;
+    final today = DateTime(now.year, now.month, now.day);
+    if (_model.week) {
+      final start = today.subtract(Duration(days: today.weekday - 1));
+      return (start, start.add(const Duration(days: 6)));
+    }
+    if (_model.month) {
+      return (
+        DateTime(now.year, now.month, 1),
+        DateTime(now.year, now.month + 1, 0)
+      );
+    }
+    return (today, today);
   }
+
+  String _shortDate(DateTime d) =>
+      dateTimeFormat('d MMM', d, locale: _locale).replaceAll('.', '');
 
   @override
   Widget build(BuildContext context) {
@@ -235,1536 +341,57 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
       },
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          top: true,
-          child: Align(
-            alignment: AlignmentDirectional(0.0, 0.0),
-            child: SafeArea(
-              child: Container(
-                width: 600.0,
-                height: 600.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(0.0),
-                    bottomRight: Radius.circular(0.0),
-                    topLeft: Radius.circular(0.0),
-                    topRight: Radius.circular(0.0),
-                  ),
-                ),
-                child: Align(
-                  alignment: AlignmentDirectional(0.0, 0.0),
-                  child: Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
+        backgroundColor: ZocColors.background,
+        body: ZocBackground(
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(),
+                  const SizedBox(height: 14),
+                  _toolbar(),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 118,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Align(
-                          alignment: AlignmentDirectional(0.0, -1.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                        Expanded(flex: 57, child: _hero()),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 41,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Align(
-                                alignment: AlignmentDirectional(-1.0, -1.0),
-                                child: Text(
-                                  dateTimeFormat(
-                                    "MMMMEEEEd",
-                                    FFAppState().currentDate,
-                                    locale: FFLocalizations.of(context)
-                                        .languageCode,
-                                  ),
-                                  style: FlutterFlowTheme.of(context)
-                                      .bodyMedium
-                                      .override(
-                                        font: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w600,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                        color: Color(0xFF101827),
-                                        fontSize: 15.0,
-                                        letterSpacing: 0.0,
-                                        fontWeight: FontWeight.w600,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .fontStyle,
-                                      ),
+                              Expanded(
+                                child: _MiniStat(
+                                  icon: Icons.checklist_rounded,
+                                  label: 'Atividades',
+                                  value: '${_tasks.length}',
                                 ),
                               ),
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsetsDirectional.fromSTEB(
-                                        0.0, 0.0, 10.0, 0.0),
-                                    child: Tooltip(
-                                      message: 'Registrar tempo',
-                                      child: FlutterFlowIconButton(
-                                        key: const ValueKey('add-time-open'),
-                                        borderRadius: 8.0,
-                                        buttonSize: 30.0,
-                                        fillColor: Color(0xFF0F8F8A),
-                                        icon: Icon(
-                                          Icons.more_time,
-                                          color: Colors.white,
-                                          size: 16.0,
-                                        ),
-                                        onPressed: () =>
-                                            showAddTimeDialog(context),
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: AlignmentDirectional(0.0, 0.0),
-                                    child: Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 0.0, 0.0),
-                                      child: FlutterFlowIconButton(
-                                        borderRadius: 8.0,
-                                        buttonSize: 30.0,
-                                        fillColor: Color(0xFF0F8F8A),
-                                        icon: FaIcon(
-                                          FontAwesomeIcons.solidFilePdf,
-                                          color: Colors.white,
-                                          size: 15.0,
-                                        ),
-                                        onPressed: () async {
-                                          await actions.generatePDF(
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$''',
-                                              true,
-                                            ),
-                                            formatNumber(
-                                              TaskDoneStruct.maybeFromMap(
-                                                      getJsonField(
-                                                _model.tasksDone,
-                                                r'''$.hours''',
-                                              ).toString())
-                                                  ?.hours,
-                                              formatType: FormatType.decimal,
-                                            ),
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$.task_name''',
-                                            ).toString(),
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$.project_name''',
-                                            ).toString(),
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$.entry_date''',
-                                            ).toString(),
-                                            dateTimeFormat(
-                                              "d/M/y",
-                                              TaskDoneStruct.maybeFromMap(
-                                                      getJsonField(
-                                                _model.tasksDone,
-                                                r'''$.created_at''',
-                                              ).toString())
-                                                  ?.endDate,
-                                              locale:
-                                                  FFLocalizations.of(context)
-                                                      .languageCode,
-                                            ),
-                                            dateTimeFormat(
-                                              "d/M/y",
-                                              TaskDoneStruct.maybeFromMap(
-                                                      getJsonField(
-                                                _model.tasksDone,
-                                                r'''$.ended_at''',
-                                              ).toString())
-                                                  ?.endDate,
-                                              locale:
-                                                  FFLocalizations.of(context)
-                                                      .languageCode,
-                                            ),
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$.client_name''',
-                                            ).toString(),
-                                            getJsonField(
-                                              _model.tasksDone,
-                                              r'''$.user_name''',
-                                            ).toString(),
-                                            _model.ignoredPopUps?.toString(),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  Align(
-                                    alignment: AlignmentDirectional(0.0, 0.0),
-                                    child: Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          10.0, 0.0, 0.0, 0.0),
-                                      child: InkWell(
-                                        splashColor: Colors.transparent,
-                                        focusColor: Colors.transparent,
-                                        hoverColor: Colors.transparent,
-                                        highlightColor: Colors.transparent,
-                                        onTap: () async {
-                                          context.safePop();
-                                        },
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(8.0),
-                                          child: SvgPicture.asset(
-                                            'assets/images/Group_810.svg',
-                                            width: 18.0,
-                                            height: 18.0,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              const SizedBox(height: 10),
+                              Expanded(
+                                child: _MiniStat(
+                                  icon: Icons.notifications_off_outlined,
+                                  label: 'Popups ignorados',
+                                  value: '${_model.ignoredPopUps ?? 0}',
+                                  warn: true,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: FFButtonWidget(
-                              onPressed: () async {
-                                var shouldSetState = false;
-                                _model.endDate = null;
-                                _model.initDate = null;
-                                safeSetState(() {});
-                                _model.day = true;
-                                _model.week = false;
-                                _model.month = false;
-                                safeSetState(() {});
-                                await Future.wait([
-                                  Future(() async {
-                                    _model.getDayWorkedHours =
-                                        await GetWorkedHoursCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'today',
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model.getDayWorkedHours?.succeeded ??
-                                        true)) {
-                                      _model.workedHours =
-                                          castToType<double>(getJsonField(
-                                        _model.getDayWorkedHours?.jsonBody,
-                                        r'''$''',
-                                      ));
-                                      safeSetState(() {});
-                                    } else {
-                                      if (shouldSetState) {
-                                        safeSetState(() {});
-                                      }
-                                      return;
-                                    }
-                                  }),
-                                  Future(() async {
-                                    _model.getTaskDoneByDayResp =
-                                        await GetTaskDoneByUserCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'day',
-                                    );
-
-                                    shouldSetState = true;
-                                    _model.tasksDone = (_model
-                                            .getTaskDoneByDayResp
-                                            ?.jsonBody is List)
-                                        ? _model.getTaskDoneByDayResp!.jsonBody
-                                        : <dynamic>[];
-                                    safeSetState(() {});
-                                  }),
-                                  Future(() async {
-                                    _model.ignoredPopupsByDay =
-                                        await IgnoredPopUpsCall.call(
-                                      id: getJsonField(
-                                        FFAppState().UserData,
-                                        r'''$.user.id''',
-                                      ).toString(),
-                                      period: 'day',
-                                      token: currentAuthenticationToken,
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model.ignoredPopupsByDay?.succeeded ??
-                                        true)) {
-                                      _model.ignoredPopUps =
-                                          IgnoredPopUpsCall.count(
-                                              _model.ignoredPopupsByDay);
-                                      safeSetState(() {});
-                                    }
-                                  }),
-                                ]);
-                                if (shouldSetState) safeSetState(() {});
-                              },
-                              text: 'Dia',
-                              options: FFButtonOptions(
-                                width: double.infinity,
-                                height: 32.0,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: (_model.day &&
-                                        _model.initDate == null &&
-                                        _model.endDate == null)
-                                    ? Color(0x1A0F8F8A)
-                                    : FlutterFlowTheme.of(context)
-                                        .secondaryBackground,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: (_model.day &&
-                                                _model.initDate == null &&
-                                                _model.endDate == null)
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .fontStyle,
-                                      ),
-                                      color: (_model.day &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? Color(0xFF0F8F8A)
-                                          : FlutterFlowTheme.of(context)
-                                              .secondaryText,
-                                      fontSize: 12.0,
-                                      letterSpacing: 0.0,
-                                      fontWeight: (_model.day &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                elevation: 0.0,
-                                borderSide: BorderSide(
-                                  color: (_model.day &&
-                                          _model.initDate == null &&
-                                          _model.endDate == null)
-                                      ? Color(0xFF0F8F8A)
-                                      : Color(0x3F0F8F8A),
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                                hoverColor: Color(0x410F8F8A),
-                                hoverTextColor: Color(0xFF0F8F8A),
-                              ),
-                              showLoadingIndicator: false,
-                            )),
-                            Expanded(
-                                child: FFButtonWidget(
-                              onPressed: () async {
-                                var shouldSetState = false;
-                                _model.endDate = null;
-                                _model.initDate = null;
-                                safeSetState(() {});
-                                _model.week = true;
-                                _model.day = false;
-                                _model.month = false;
-                                safeSetState(() {});
-                                await Future.wait([
-                                  Future(() async {
-                                    _model.getWeekWorkedHours =
-                                        await GetWorkedHoursCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'week',
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model.getWeekWorkedHours?.succeeded ??
-                                        true)) {
-                                      _model.workedHours =
-                                          castToType<double>(getJsonField(
-                                        _model.getWeekWorkedHours?.jsonBody,
-                                        r'''$''',
-                                      ));
-                                      safeSetState(() {});
-                                    } else {
-                                      if (shouldSetState) {
-                                        safeSetState(() {});
-                                      }
-                                      return;
-                                    }
-                                  }),
-                                  Future(() async {
-                                    _model.getTaskDoneByWeekResp =
-                                        await GetTaskDoneByUserCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'week',
-                                    );
-
-                                    shouldSetState = true;
-                                    _model.tasksDone = (_model
-                                            .getTaskDoneByWeekResp
-                                            ?.jsonBody is List)
-                                        ? _model.getTaskDoneByWeekResp!.jsonBody
-                                        : <dynamic>[];
-                                    safeSetState(() {});
-                                  }),
-                                  Future(() async {
-                                    _model.ignoredPopupsByWeek =
-                                        await IgnoredPopUpsCall.call(
-                                      id: getJsonField(
-                                        FFAppState().UserData,
-                                        r'''$.user.id''',
-                                      ).toString(),
-                                      period: 'week',
-                                      token: currentAuthenticationToken,
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model
-                                            .ignoredPopupsByWeek?.succeeded ??
-                                        true)) {
-                                      _model.ignoredPopUps =
-                                          IgnoredPopUpsCall.count(
-                                              _model.ignoredPopupsByWeek);
-                                      safeSetState(() {});
-                                    }
-                                  }),
-                                ]);
-                                if (shouldSetState) safeSetState(() {});
-                              },
-                              text: 'Semana',
-                              options: FFButtonOptions(
-                                width: double.infinity,
-                                height: 32.0,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: (_model.week &&
-                                        _model.initDate == null &&
-                                        _model.endDate == null)
-                                    ? Color(0x1A0F8F8A)
-                                    : FlutterFlowTheme.of(context)
-                                        .secondaryBackground,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: (_model.week &&
-                                                _model.initDate == null &&
-                                                _model.endDate == null)
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .fontStyle,
-                                      ),
-                                      color: (_model.week &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? Color(0xFF0F8F8A)
-                                          : FlutterFlowTheme.of(context)
-                                              .secondaryText,
-                                      fontSize: 12.0,
-                                      letterSpacing: 0.0,
-                                      fontWeight: (_model.week &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                elevation: 0.0,
-                                borderSide: BorderSide(
-                                  color: (_model.week &&
-                                          _model.initDate == null &&
-                                          _model.endDate == null)
-                                      ? Color(0xFF0F8F8A)
-                                      : Color(0x3F0F8F8A),
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                                hoverColor: Color(0x410F8F8A),
-                                hoverTextColor: Color(0xFF0F8F8A),
-                              ),
-                              showLoadingIndicator: false,
-                            )),
-                            Expanded(
-                                child: FFButtonWidget(
-                              onPressed: () async {
-                                var shouldSetState = false;
-                                _model.endDate = null;
-                                _model.initDate = null;
-                                safeSetState(() {});
-                                _model.day = false;
-                                _model.week = false;
-                                _model.month = true;
-                                safeSetState(() {});
-                                await Future.wait([
-                                  Future(() async {
-                                    _model.getMonthWorkedHours =
-                                        await GetWorkedHoursCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'month',
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model
-                                            .getMonthWorkedHours?.succeeded ??
-                                        true)) {
-                                      _model.workedHours =
-                                          castToType<double>(getJsonField(
-                                        _model.getMonthWorkedHours?.jsonBody,
-                                        r'''$''',
-                                      ));
-                                      safeSetState(() {});
-                                    } else {
-                                      if (shouldSetState) {
-                                        safeSetState(() {});
-                                      }
-                                      return;
-                                    }
-                                  }),
-                                  Future(() async {
-                                    _model.getTaskDoneByMonthResp =
-                                        await GetTaskDoneByUserCall.call(
-                                      token: currentAuthenticationToken,
-                                      userId: UserDataStruct.maybeFromMap(
-                                              FFAppState().UserData)
-                                          ?.user
-                                          .id,
-                                      period: 'month',
-                                    );
-
-                                    shouldSetState = true;
-                                    _model.tasksDone = (_model
-                                            .getTaskDoneByMonthResp
-                                            ?.jsonBody is List)
-                                        ? _model
-                                            .getTaskDoneByMonthResp!.jsonBody
-                                        : <dynamic>[];
-                                    safeSetState(() {});
-                                  }),
-                                  Future(() async {
-                                    _model.ignoredPopupsByMonth =
-                                        await IgnoredPopUpsCall.call(
-                                      id: getJsonField(
-                                        FFAppState().UserData,
-                                        r'''$.user.id''',
-                                      ).toString(),
-                                      period: 'month',
-                                      token: currentAuthenticationToken,
-                                    );
-
-                                    shouldSetState = true;
-                                    if ((_model
-                                            .ignoredPopupsByMonth?.succeeded ??
-                                        true)) {
-                                      _model.ignoredPopUps =
-                                          IgnoredPopUpsCall.count(
-                                              _model.ignoredPopupsByMonth);
-                                      safeSetState(() {});
-                                    }
-                                  }),
-                                ]);
-                                if (shouldSetState) safeSetState(() {});
-                              },
-                              text: 'Mês',
-                              options: FFButtonOptions(
-                                width: double.infinity,
-                                height: 32.0,
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    16.0, 0.0, 16.0, 0.0),
-                                iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 0.0, 0.0),
-                                color: (_model.month &&
-                                        _model.initDate == null &&
-                                        _model.endDate == null)
-                                    ? Color(0x1A0F8F8A)
-                                    : FlutterFlowTheme.of(context)
-                                        .secondaryBackground,
-                                textStyle: FlutterFlowTheme.of(context)
-                                    .titleSmall
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: (_model.month &&
-                                                _model.initDate == null &&
-                                                _model.endDate == null)
-                                            ? FontWeight.w600
-                                            : FontWeight.normal,
-                                        fontStyle: FlutterFlowTheme.of(context)
-                                            .titleSmall
-                                            .fontStyle,
-                                      ),
-                                      color: (_model.month &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? Color(0xFF0F8F8A)
-                                          : FlutterFlowTheme.of(context)
-                                              .secondaryText,
-                                      fontSize: 12.0,
-                                      letterSpacing: 0.0,
-                                      fontWeight: (_model.month &&
-                                              _model.initDate == null &&
-                                              _model.endDate == null)
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                elevation: 0.0,
-                                borderSide: BorderSide(
-                                  color: (_model.month &&
-                                          _model.initDate == null &&
-                                          _model.endDate == null)
-                                      ? Color(0xFF0F8F8A)
-                                      : Color(0x3F0F8F8A),
-                                ),
-                                borderRadius: BorderRadius.circular(8.0),
-                                hoverColor: Color(0x400F8F8A),
-                                hoverTextColor: Color(0xFF0F8F8A),
-                              ),
-                              showLoadingIndicator: false,
-                            )),
-                          ].divide(SizedBox(width: 8.0)),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDateField(
-                                label: 'Início',
-                                value: _model.initDate,
-                                onTap: () async {
-                                  final datePicked1Date = await showDatePicker(
-                                    context: context,
-                                    initialDate: getCurrentTimestamp,
-                                    firstDate: DateTime(1900),
-                                    lastDate: DateTime(2050),
-                                    builder: (context, child) {
-                                      return wrapInMaterialDatePickerTheme(
-                                        context,
-                                        child!,
-                                        headerBackgroundColor:
-                                            Color(0xFF0F8F8A),
-                                        headerForegroundColor:
-                                            FlutterFlowTheme.of(context).info,
-                                        headerTextStyle: FlutterFlowTheme.of(
-                                                context)
-                                            .headlineLarge
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w600,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .headlineLarge
-                                                        .fontStyle,
-                                              ),
-                                              fontSize: 32.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .headlineLarge
-                                                      .fontStyle,
-                                            ),
-                                        pickerBackgroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .secondaryBackground,
-                                        pickerForegroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .primaryText,
-                                        selectedDateTimeBackgroundColor:
-                                            Color(0xFF0F8F8A),
-                                        selectedDateTimeForegroundColor:
-                                            FlutterFlowTheme.of(context).info,
-                                        actionButtonForegroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .primaryText,
-                                        iconSize: 24.0,
-                                      );
-                                    },
-                                  );
-
-                                  if (datePicked1Date != null) {
-                                    safeSetState(() {
-                                      _model.datePicked1 = DateTime(
-                                        datePicked1Date.year,
-                                        datePicked1Date.month,
-                                        datePicked1Date.day,
-                                      );
-                                    });
-                                  } else if (_model.datePicked1 != null) {
-                                    safeSetState(() {
-                                      _model.datePicked1 = getCurrentTimestamp;
-                                    });
-                                  }
-                                  _model.initDate = _model.datePicked1;
-                                  safeSetState(() {});
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildDateField(
-                                label: 'Fim',
-                                value: _model.endDate,
-                                onTap: () async {
-                                  var shouldSetState = false;
-                                  final datePicked2Date = await showDatePicker(
-                                    context: context,
-                                    initialDate: getCurrentTimestamp,
-                                    firstDate: DateTime(1900),
-                                    lastDate: DateTime(2050),
-                                    builder: (context, child) {
-                                      return wrapInMaterialDatePickerTheme(
-                                        context,
-                                        child!,
-                                        headerBackgroundColor:
-                                            Color(0xFF0F8F8A),
-                                        headerForegroundColor:
-                                            FlutterFlowTheme.of(context).info,
-                                        headerTextStyle: FlutterFlowTheme.of(
-                                                context)
-                                            .headlineLarge
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight: FontWeight.w600,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .headlineLarge
-                                                        .fontStyle,
-                                              ),
-                                              fontSize: 32.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w600,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .headlineLarge
-                                                      .fontStyle,
-                                            ),
-                                        pickerBackgroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .secondaryBackground,
-                                        pickerForegroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .primaryText,
-                                        selectedDateTimeBackgroundColor:
-                                            Color(0xFF0F8F8A),
-                                        selectedDateTimeForegroundColor:
-                                            FlutterFlowTheme.of(context).info,
-                                        actionButtonForegroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .primaryText,
-                                        iconSize: 24.0,
-                                      );
-                                    },
-                                  );
-
-                                  if (datePicked2Date != null) {
-                                    safeSetState(() {
-                                      _model.datePicked2 = DateTime(
-                                        datePicked2Date.year,
-                                        datePicked2Date.month,
-                                        datePicked2Date.day,
-                                      );
-                                    });
-                                  } else if (_model.datePicked2 != null) {
-                                    safeSetState(() {
-                                      _model.datePicked2 = getCurrentTimestamp;
-                                    });
-                                  }
-                                  _model.endDate = _model.datePicked2;
-                                  safeSetState(() {});
-                                  // Range queries need both dates; otherwise the
-                                  // API gets the literal "null" and returns 500.
-                                  if (_model.initDate == null ||
-                                      _model.endDate == null) {
-                                    return;
-                                  }
-                                  await Future.wait([
-                                    Future(() async {
-                                      _model.getInitAndEndWorkedHours =
-                                          await GetWorkedHoursCall.call(
-                                        token: currentAuthenticationToken,
-                                        userId: UserDataStruct.maybeFromMap(
-                                                FFAppState().UserData)
-                                            ?.user
-                                            .id,
-                                        period: 'range',
-                                        startDate: _model.initDate?.toString(),
-                                        endDate: _model.endDate?.toString(),
-                                      );
-
-                                      shouldSetState = true;
-                                      if ((_model.getInitAndEndWorkedHours
-                                              ?.succeeded ??
-                                          true)) {
-                                        _model.workedHours =
-                                            castToType<double>(getJsonField(
-                                          _model.getInitAndEndWorkedHours
-                                              ?.jsonBody,
-                                          r'''$''',
-                                        ));
-                                        safeSetState(() {});
-                                      } else {
-                                        if (shouldSetState) {
-                                          safeSetState(() {});
-                                        }
-                                        return;
-                                      }
-                                    }),
-                                    Future(() async {
-                                      _model.getTaskDoneByInitAndEndDateResp =
-                                          await GetTaskDoneByUserCall.call(
-                                        token: currentAuthenticationToken,
-                                        userId: UserDataStruct.maybeFromMap(
-                                                FFAppState().UserData)
-                                            ?.user
-                                            .id,
-                                        period: 'range',
-                                        startDate: _model.initDate?.toString(),
-                                        endDate: _model.endDate?.toString(),
-                                      );
-
-                                      shouldSetState = true;
-                                      final rangeTasks = getJsonField(
-                                        _model.getTaskDoneByInitAndEndDateResp
-                                            ?.jsonBody,
-                                        r'''$''',
-                                      );
-                                      _model.tasksDone = rangeTasks is List
-                                          ? rangeTasks
-                                          : <dynamic>[];
-                                      safeSetState(() {});
-                                    }),
-                                    Future(() async {
-                                      _model.ignoredPopupsInit =
-                                          await IgnoredPopUpsCall.call(
-                                        id: getJsonField(
-                                          FFAppState().UserData,
-                                          r'''$.user.id''',
-                                        ).toString(),
-                                        period: 'range',
-                                        token: currentAuthenticationToken,
-                                        startDate: _model.initDate?.toString(),
-                                        endDate: _model.endDate?.toString(),
-                                      );
-
-                                      shouldSetState = true;
-                                      if ((_model
-                                              .ignoredPopupsInit?.succeeded ??
-                                          true)) {
-                                        _model.ignoredPopUps =
-                                            IgnoredPopUpsCall.count(
-                                                _model.ignoredPopupsInit);
-                                        safeSetState(() {});
-                                      }
-                                    }),
-                                  ]);
-                                  if (shouldSetState) safeSetState(() {});
-                                },
-                              ),
-                            ),
-                            if ((_model.initDate != null) ||
-                                (_model.endDate != null))
-                              Tooltip(
-                                message: 'Limpar período',
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  onTap: () async {
-                                    var shouldSetState = false;
-                                    _model.endDate = null;
-                                    _model.initDate = null;
-                                    _model.day = true;
-                                    _model.week = false;
-                                    _model.month = false;
-                                    safeSetState(() {});
-                                    await Future.wait([
-                                      Future(() async {
-                                        _model.getDayInitWorkedHours =
-                                            await GetWorkedHoursCall.call(
-                                          token: currentAuthenticationToken,
-                                          userId: UserDataStruct.maybeFromMap(
-                                                  FFAppState().UserData)
-                                              ?.user
-                                              .id,
-                                          period: 'today',
-                                        );
-
-                                        shouldSetState = true;
-                                        if ((_model.getDayInitWorkedHours
-                                                ?.succeeded ??
-                                            true)) {
-                                          _model.workedHours =
-                                              castToType<double>(getJsonField(
-                                            _model.getDayInitWorkedHours
-                                                ?.jsonBody,
-                                            r'''$''',
-                                          ));
-                                          safeSetState(() {});
-                                        } else {
-                                          if (shouldSetState) {
-                                            safeSetState(() {});
-                                          }
-                                          return;
-                                        }
-                                      }),
-                                      Future(() async {
-                                        _model.getTaskDoneByInitResp =
-                                            await GetTaskDoneByUserCall.call(
-                                          token: currentAuthenticationToken,
-                                          userId: UserDataStruct.maybeFromMap(
-                                                  FFAppState().UserData)
-                                              ?.user
-                                              .id,
-                                          period: 'day',
-                                        );
-
-                                        shouldSetState = true;
-                                        _model.tasksDone = (_model
-                                                .getTaskDoneByInitResp
-                                                ?.jsonBody is List)
-                                            ? _model
-                                                .getTaskDoneByInitResp!.jsonBody
-                                            : <dynamic>[];
-                                        safeSetState(() {});
-                                      }),
-                                      Future(() async {
-                                        _model.ignoredPopupsByInit =
-                                            await IgnoredPopUpsCall.call(
-                                          id: getJsonField(
-                                            FFAppState().UserData,
-                                            r'''$.user.id''',
-                                          ).toString(),
-                                          period: 'day',
-                                          token: currentAuthenticationToken,
-                                        );
-
-                                        shouldSetState = true;
-                                        if ((_model.ignoredPopupsByInit
-                                                ?.succeeded ??
-                                            true)) {
-                                          _model.ignoredPopUps =
-                                              IgnoredPopUpsCall.count(
-                                                  _model.ignoredPopupsByInit);
-                                          safeSetState(() {});
-                                        }
-                                      }),
-                                    ]);
-                                    if (shouldSetState) {
-                                      safeSetState(() {});
-                                    }
-                                  },
-                                  child: Container(
-                                    width: 40.0,
-                                    height: 40.0,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                      border: Border.all(
-                                          color: Color(0x3F0F8F8A), width: 1.0),
-                                    ),
-                                    child: Icon(Icons.close,
-                                        color: Color(0xFF0F8F8A), size: 18.0),
-                                  ),
-                                ),
-                              ),
-                          ].divide(SizedBox(width: 8.0)),
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.schedule_rounded,
-                                label: 'Horas trabalhadas',
-                                value: valueOrDefault<String>(
-                                  functions.formatHours(_model.workedHours),
-                                  '0',
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildStatCard(
-                                icon: Icons.notifications_off_outlined,
-                                label: 'PopUps ignorados',
-                                value: valueOrDefault<String>(
-                                  formatNumber(
-                                    _model.ignoredPopUps,
-                                    formatType: FormatType.decimal,
-                                    decimalType: DecimalType.automatic,
-                                  ),
-                                  '0',
-                                ),
-                              ),
-                            ),
-                          ].divide(SizedBox(width: 8.0)),
-                        ),
-                        Expanded(
-                          child: Align(
-                            alignment: AlignmentDirectional(-1.0, 0.0),
-                            child: Container(
-                              width: double.infinity,
-                              height: MediaQuery.sizeOf(context).height * 0.4,
-                              decoration: BoxDecoration(
-                                color: FlutterFlowTheme.of(context)
-                                    .secondaryBackground,
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(10.0),
-                                  bottomRight: Radius.circular(10.0),
-                                  topLeft: Radius.circular(10.0),
-                                  topRight: Radius.circular(10.0),
-                                ),
-                                border: Border.all(
-                                  color: Color(0x3F0F8F8A),
-                                  width: 1.0,
-                                ),
-                              ),
-                              alignment: AlignmentDirectional(0.0, 0.0),
-                              child: Padding(
-                                padding: EdgeInsetsDirectional.fromSTEB(
-                                    10.0, 0.0, 10.0, 0.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.max,
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Align(
-                                      alignment:
-                                          AlignmentDirectional(-1.0, 0.0),
-                                      child: Padding(
-                                        padding: EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 10.0, 0.0, 10.0),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Align(
-                                              alignment: AlignmentDirectional(
-                                                  0.0, -1.0),
-                                              child: Text(
-                                                'Atividades feitas',
-                                                style:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .override(
-                                                          font: GoogleFonts
-                                                              .montserrat(
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                            fontStyle:
-                                                                FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontStyle,
-                                                          ),
-                                                          color:
-                                                              Color(0xFF101827),
-                                                          fontSize: 14.0,
-                                                          letterSpacing: 0.0,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                              ),
-                                            ),
-                                            AlignedTooltip(
-                                              content: Padding(
-                                                padding: EdgeInsets.all(4.0),
-                                                child: Text(
-                                                  'Atividades realizadas no dia.',
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .bodyLarge
-                                                      .override(
-                                                        font: GoogleFonts
-                                                            .montserrat(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyLarge
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyLarge
-                                                                  .fontStyle,
-                                                        ),
-                                                        color:
-                                                            Color(0xFF101827),
-                                                        fontSize: 10.0,
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyLarge
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyLarge
-                                                                .fontStyle,
-                                                      ),
-                                                ),
-                                              ),
-                                              offset: 4.0,
-                                              preferredDirection:
-                                                  AxisDirection.up,
-                                              borderRadius:
-                                                  BorderRadius.circular(8.0),
-                                              backgroundColor:
-                                                  FlutterFlowTheme.of(context)
-                                                      .secondaryBackground,
-                                              elevation: 4.0,
-                                              tailBaseWidth: 19.0,
-                                              tailLength: 9.0,
-                                              waitDuration:
-                                                  Duration(milliseconds: 100),
-                                              showDuration:
-                                                  Duration(milliseconds: 700),
-                                              triggerMode:
-                                                  TooltipTriggerMode.tap,
-                                              child: Icon(
-                                                Icons.help_sharp,
-                                                color: Color(0xFF0F8F8A),
-                                                size: 20.0,
-                                              ),
-                                            ),
-                                          ].divide(SizedBox(width: 10.0)),
-                                        ),
-                                      ),
-                                    ),
-                                    Flexible(
-                                      child: Align(
-                                        alignment:
-                                            AlignmentDirectional(0.0, -1.0),
-                                        child: Container(
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          decoration: BoxDecoration(
-                                            color: FlutterFlowTheme.of(context)
-                                                .secondaryBackground,
-                                          ),
-                                          child: Builder(
-                                            builder: (context) {
-                                              final tasks = (((_model.tasksDone
-                                                                  is List
-                                                              ? _model.tasksDone
-                                                                  as List
-                                                              : const [])
-                                                          .map<TaskDoneStruct?>(
-                                                              TaskDoneStruct
-                                                                  .maybeFromMap)
-                                                          .toList())
-                                                      as Iterable<
-                                                          TaskDoneStruct?>)
-                                                  .withoutNulls
-                                                  .toList();
-                                              if (tasks.isEmpty) {
-                                                return Center(
-                                                  child: SizedBox(
-                                                    width: 200.0,
-                                                    height: 200.0,
-                                                    child: NotAtivitiesWidget(),
-                                                  ),
-                                                );
-                                              }
-
-                                              return FlutterFlowDataTable<
-                                                  TaskDoneStruct>(
-                                                controller: _model
-                                                    .paginatedDataTableController,
-                                                data: tasks,
-                                                numRows: tasks.length,
-                                                columnsBuilder:
-                                                    (onSortChanged) => [
-                                                  DataColumn2(
-                                                    label:
-                                                        DefaultTextStyle.merge(
-                                                      softWrap: true,
-                                                      child: Padding(
-                                                        padding:
-                                                            EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    5.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          'Atividade',
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .labelMedium
-                                                              .override(
-                                                                font: GoogleFonts
-                                                                    .montserrat(
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontStyle,
-                                                                ),
-                                                                color: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .secondaryBackground,
-                                                                letterSpacing:
-                                                                    0.0,
-                                                                fontWeight: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .labelMedium
-                                                                    .fontWeight,
-                                                                fontStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .labelMedium
-                                                                    .fontStyle,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  DataColumn2(
-                                                    label:
-                                                        DefaultTextStyle.merge(
-                                                      softWrap: true,
-                                                      child: Padding(
-                                                        padding:
-                                                            EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    30.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          'Projeto',
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .labelMedium
-                                                              .override(
-                                                                font: GoogleFonts
-                                                                    .montserrat(
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontStyle,
-                                                                ),
-                                                                color: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .secondaryBackground,
-                                                                letterSpacing:
-                                                                    0.0,
-                                                                fontWeight: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .labelMedium
-                                                                    .fontWeight,
-                                                                fontStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .labelMedium
-                                                                    .fontStyle,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  DataColumn2(
-                                                    label:
-                                                        DefaultTextStyle.merge(
-                                                      softWrap: true,
-                                                      child: Align(
-                                                        alignment:
-                                                            AlignmentDirectional(
-                                                                1.0, -1.0),
-                                                        child: Padding(
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      10.0,
-                                                                      0.0),
-                                                          child: Text(
-                                                            'Tempo',
-                                                            style: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .labelMedium
-                                                                .override(
-                                                                  font: GoogleFonts
-                                                                      .montserrat(
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .labelMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .labelMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                                  color: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .secondaryBackground,
-                                                                  letterSpacing:
-                                                                      0.0,
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelMedium
-                                                                      .fontStyle,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                                dataRowBuilder: (tasksItem,
-                                                        tasksIndex,
-                                                        selected,
-                                                        onSelectChanged) =>
-                                                    DataRow(
-                                                  color:
-                                                      WidgetStateProperty.all(
-                                                    tasksIndex % 2 == 0
-                                                        ? FlutterFlowTheme.of(
-                                                                context)
-                                                            .secondaryBackground
-                                                        : FlutterFlowTheme.of(
-                                                                context)
-                                                            .primaryBackground,
-                                                  ),
-                                                  cells: [
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              -1.0, 0.0),
-                                                      child: Text(
-                                                        tasksItem.taskName,
-                                                        style:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodySmall
-                                                                .override(
-                                                                  font: GoogleFonts
-                                                                      .montserrat(
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodySmall
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodySmall
-                                                                        .fontStyle,
-                                                                  ),
-                                                                  color: Color(
-                                                                      0xFF101827),
-                                                                  letterSpacing:
-                                                                      0.0,
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodySmall
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodySmall
-                                                                      .fontStyle,
-                                                                ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              -1.0, 0.0),
-                                                      child: Padding(
-                                                        padding:
-                                                            EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    35.0,
-                                                                    0.0,
-                                                                    5.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          tasksItem.projectName,
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodySmall
-                                                              .override(
-                                                                font: GoogleFonts
-                                                                    .montserrat(
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodySmall
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodySmall
-                                                                      .fontStyle,
-                                                                ),
-                                                                color: Color(
-                                                                    0xFF101827),
-                                                                letterSpacing:
-                                                                    0.0,
-                                                                fontWeight: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodySmall
-                                                                    .fontWeight,
-                                                                fontStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodySmall
-                                                                    .fontStyle,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              -1.0, 0.0),
-                                                      child: Padding(
-                                                        padding:
-                                                            EdgeInsetsDirectional
-                                                                .fromSTEB(
-                                                                    70.0,
-                                                                    0.0,
-                                                                    0.0,
-                                                                    0.0),
-                                                        child: Text(
-                                                          valueOrDefault<
-                                                              String>(
-                                                            functions
-                                                                .formatHours(
-                                                                    getJsonField(
-                                                              tasksItem.toMap(),
-                                                              r'''$.hours''',
-                                                            )),
-                                                            '0',
-                                                          ),
-                                                          textAlign:
-                                                              TextAlign.end,
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodyMedium
-                                                              .override(
-                                                                font: GoogleFonts
-                                                                    .montserrat(
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodyMedium
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .bodyMedium
-                                                                      .fontStyle,
-                                                                ),
-                                                                color: Color(
-                                                                    0xFF101827),
-                                                                fontSize: 12.0,
-                                                                letterSpacing:
-                                                                    0.0,
-                                                                fontWeight: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontWeight,
-                                                                fontStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontStyle,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ]
-                                                      .map((c) => DataCell(c))
-                                                      .toList(),
-                                                ),
-                                                emptyBuilder: () => Center(
-                                                  child: SizedBox(
-                                                    width: 200.0,
-                                                    height: 200.0,
-                                                    child: NotAtivitiesWidget(),
-                                                  ),
-                                                ),
-                                                paginated: true,
-                                                selectable: false,
-                                                hidePaginator: true,
-                                                showFirstLastButtons: false,
-                                                height: double.infinity,
-                                                headingRowHeight: 20.0,
-                                                dataRowHeight: 35.0,
-                                                columnSpacing: 34.0,
-                                                headingRowColor:
-                                                    Color(0xFF0F8F8A),
-                                                borderRadius:
-                                                    BorderRadius.circular(8.0),
-                                                addHorizontalDivider: true,
-                                                addTopAndBottomDivider: false,
-                                                hideDefaultHorizontalDivider:
-                                                    true,
-                                                horizontalDividerColor:
-                                                    FlutterFlowTheme.of(context)
-                                                        .secondaryBackground,
-                                                horizontalDividerThickness: 1.0,
-                                                addVerticalDivider: false,
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        DisclaimerBanner(),
-                      ]
-                          .divide(SizedBox(height: 10.0))
-                          .addToStart(SizedBox(height: 10.0))
-                          .addToEnd(SizedBox(height: 10.0)),
+                      ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Expanded(child: _activities()),
+                  const SizedBox(height: 8),
+                  const ZocDisclaimer(),
+                ],
               ),
             ),
           ),
@@ -1772,4 +399,391 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
       ),
     );
   }
+
+  Widget _header() {
+    final raw = _model.firstName ?? '';
+    final name = raw == 'null' ? '' : raw.trim();
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+              color: ZocColors.brandSoft, shape: BoxShape.circle),
+          child: name.isEmpty
+              ? const Icon(Icons.person_outline_rounded,
+                  size: 20, color: ZocColors.brand)
+              : Text(name.characters.first.toUpperCase(),
+                  style: ZocText.h2(color: ZocColors.brand)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(name.isEmpty ? 'Olá!' : 'Olá, $name',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ZocText.h3().copyWith(fontSize: 15.5)),
+              const SizedBox(height: 2),
+              Text(
+                dateTimeFormat("EEEE, d 'de' MMMM", FFAppState().currentDate,
+                    locale: _locale),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: ZocText.caption().copyWith(fontSize: 12.5),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        ZocButton(
+          'Registrar tempo',
+          key: const ValueKey('add-time-open'),
+          variant: ZocButtonVariant.secondary,
+          small: true,
+          icon: Icons.edit_calendar_outlined,
+          onPressed: () => showAddTimeDialog(context),
+        ),
+        const SizedBox(width: 8),
+        _IconAction(
+          icon: Icons.picture_as_pdf_outlined,
+          tooltip: 'Exportar PDF',
+          onTap: _exportPdf,
+        ),
+        const SizedBox(width: 4),
+        _IconAction(
+          icon: Icons.close_rounded,
+          tooltip: 'Fechar',
+          ghost: true,
+          onTap: () async => context.safePop(),
+        ),
+      ],
+    );
+  }
+
+  Widget _toolbar() {
+    final custom = _customRange;
+    final selected = custom
+        ? -1
+        : _model.week
+            ? 1
+            : _model.month
+                ? 2
+                : 0;
+    final (periodStart, periodEnd) = _periodBounds();
+    final startLabel = custom
+        ? (_model.initDate == null ? 'Início' : _shortDate(_model.initDate!))
+        : _shortDate(periodStart);
+    final endLabel = custom
+        ? (_model.endDate == null ? 'Fim' : _shortDate(_model.endDate!))
+        : _shortDate(periodEnd);
+
+    return Row(
+      children: [
+        ZocSegmented(
+          labels: const ['Dia', 'Semana', 'Mês'],
+          selected: selected,
+          onChanged: _selectPeriod,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
+              color: ZocColors.surface,
+              borderRadius: BorderRadius.circular(ZocRadii.pill),
+              boxShadow: ZocShadows.card,
+            ),
+            child: Row(
+              children: [
+                _DateChip(
+                  label: startLabel,
+                  tooltip: 'Data de início',
+                  active: _model.initDate != null,
+                  onTap: _pickStart,
+                ),
+                Text('–', style: ZocText.body(color: ZocColors.faint)),
+                _DateChip(
+                  label: endLabel,
+                  tooltip: 'Data de fim',
+                  active: _model.endDate != null,
+                  onTap: _pickEnd,
+                ),
+                const Spacer(),
+                if (custom)
+                  _IconAction(
+                    icon: Icons.close_rounded,
+                    tooltip: 'Limpar período',
+                    ghost: true,
+                    size: 28,
+                    onTap: _clearRange,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _hero() {
+    final worked = _model.workedHours ?? 0;
+    final goal = _model.goalHours;
+    final ratio = goal == null || goal <= 0 ? 0.0 : worked / goal;
+    final caption = goal == null
+        ? 'Carregando meta…'
+        : '${(ratio * 100).round()}% da meta de ${_goalLabel(goal)}';
+    final soft = ZocText.caption(color: const Color(0xE6FFFFFF))
+        .copyWith(fontSize: 13);
+    return ZocHeroCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.schedule_rounded, size: 15),
+              const SizedBox(width: 6),
+              Text('Horas trabalhadas', style: soft),
+            ],
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(expedienteHoursLabel(worked),
+                style: ZocText.big(color: Colors.white)),
+          ),
+          ZocProgressBar(value: ratio, onDark: true),
+          Text(caption, style: soft),
+        ],
+      ),
+    );
+  }
+
+  Widget _activities() {
+    final tasks = _tasks;
+    final dayView = _model.day && !_customRange;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+      decoration: BoxDecoration(
+        color: ZocColors.surface,
+        borderRadius: BorderRadius.circular(ZocRadii.card),
+        boxShadow: ZocShadows.card,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.show_chart_rounded,
+                  size: 18, color: ZocColors.brand),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text('Atividades feitas',
+                      style: ZocText.h3().copyWith(fontSize: 15.5))),
+              ZocBadge('${tasks.length}'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: tasks.isEmpty
+                ? (_loading
+                    ? const Center(
+                        child: SizedBox.square(
+                          dimension: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: ZocColors.brand),
+                        ),
+                      )
+                    : const _EmptyActivities())
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: tasks.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    itemBuilder: (context, i) =>
+                        _taskItem(tasks[i], i, showDate: !dayView),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _taskItem(Map task, int index, {required bool showDate}) {
+    String text(String key) {
+      final v = task[key];
+      return v == null ? '' : '$v'.trim();
+    }
+
+    DateTime? time(String key) => DateTime.tryParse(text(key))?.toLocal();
+    final subtitle = [text('project_name'), text('client_name')]
+        .where((s) => s.isNotEmpty)
+        .join(' · ');
+    final hours = task['hours'];
+    final start = time('created_at'), end = time('ended_at');
+    String hm(DateTime d) => dateTimeFormat('HH:mm', d, locale: _locale);
+    var range = [if (start != null) hm(start), if (end != null) hm(end)]
+        .join(' – ');
+    if (showDate && start != null) {
+      final day = dateTimeFormat('dd/MM', start, locale: _locale);
+      range = range.isEmpty ? day : '$day · $range';
+    }
+    return ZocListItem(
+      title: text('task_name'),
+      subtitle: subtitle.isEmpty ? null : subtitle,
+      barColor: ZocColors.accents[index % ZocColors.accents.length],
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          ZocBadge(expedienteHoursLabel(hours is num ? hours.toDouble() : 0)),
+          if (range.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(range, style: ZocText.caption()),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Small stat card next to the hero (Atividades / Popups ignorados).
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.warn = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool warn;
+
+  @override
+  Widget build(BuildContext context) => ZocCard(
+        color: warn ? ZocColors.warnSurface : ZocColors.surface,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 15, color: warn ? ZocColors.warn : ZocColors.brand),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ZocText.body(color: ZocColors.muted)
+                      .copyWith(fontSize: 13)),
+            ),
+            Text(value,
+                style: ZocText.title().copyWith(fontSize: 20, height: 1)),
+          ],
+        ),
+      );
+}
+
+/// Round icon button: white with a soft shadow, or [ghost] (no fill).
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.ghost = false,
+    this.size = 34,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Future<void> Function() onTap;
+  final bool ghost;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: ghost ? Colors.transparent : ZocColors.surface,
+            shape: BoxShape.circle,
+            boxShadow: ghost ? null : ZocShadows.card,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox.square(
+                dimension: size,
+                child: Icon(icon,
+                    size: ghost ? 18 : 16,
+                    color: ghost ? ZocColors.muted : ZocColors.brand),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+/// Tappable date inside the range pill.
+class _DateChip extends StatelessWidget {
+  const _DateChip({
+    required this.label,
+    required this.tooltip,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final String tooltip;
+  final bool active;
+  final Future<void> Function() onTap;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(ZocRadii.pill),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calendar_today_outlined,
+                    size: 14, color: ZocColors.brand),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: ZocText.body(
+                        weight: active ? FontWeight.w600 : FontWeight.w500)),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+class _EmptyActivities extends StatelessWidget {
+  const _EmptyActivities();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ZocHeroIcon(Icons.event_note_outlined, small: true),
+            const SizedBox(height: 10),
+            Text('Nenhuma atividade no período', style: ZocText.strong()),
+            const SizedBox(height: 2),
+            Text('As atividades registradas aparecem aqui.',
+                style: ZocText.caption()),
+          ],
+        ),
+      );
 }

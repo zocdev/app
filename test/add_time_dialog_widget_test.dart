@@ -60,6 +60,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(
           find.byKey(const ValueKey('add-time-reason')), 'Reunião fora do PC');
+      await tester.ensureVisible(find.byKey(const ValueKey('add-time-submit')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('add-time-submit')));
       await tester.pumpAndSettle();
     }, () => client);

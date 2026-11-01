@@ -264,6 +264,54 @@ class GetWorkedHoursCall {
   }
 }
 
+/// Work target of the user for a period (`today`, `week` or `month`).
+/// Response: `{"period", "goal_hours", "monthly_hours", "source"}`.
+class GetWorkGoalCall {
+  static Future<ApiCallResponse> call({
+    String? token = '',
+    String? userId = '',
+    String period = 'today',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetWorkGoal',
+      apiUrl: '${getBaseApiUrl()}/api/v1/users/work-goal/$userId',
+      callType: ApiCallType.GET,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+      params: {
+        'period': period,
+      },
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  /// Default goal when the API is unavailable: 8h a day, 40h a week and
+  /// 176h a month.
+  static double fallbackHours(String period) => switch (period) {
+        'week' => 40,
+        'month' => 176,
+        _ => 8,
+      };
+
+  /// `goal_hours` from [response], or [fallbackHours] when the call failed
+  /// or the value is missing or not positive.
+  static double goalHours(ApiCallResponse? response, String period) {
+    final body = response?.jsonBody;
+    if (response?.succeeded == true && body is Map) {
+      final raw = body['goal_hours'];
+      final value = raw is num ? raw.toDouble() : double.tryParse('$raw');
+      if (value != null && value.isFinite && value > 0) return value;
+    }
+    return fallbackHours(period);
+  }
+}
+
 class GetTaskDoneByUserCall {
   static Future<ApiCallResponse> call({
     String? token = '',

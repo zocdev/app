@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_drop_down.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
-import '/utils/zoc_logo.dart';
-
-const _brand = Color(0xFF0F8F8A);
-const _ink = Color(0xFF101827);
+import '/ui/zoc_ui.dart';
 
 /// Parses "HH:mm" into minutes (1 to 1440), same rules as the web form.
 int durationMinutes(String value) {
@@ -55,20 +49,15 @@ String _apiMessage(ApiCallResponse response, String fallback) {
   return fallback;
 }
 
-/// Opens the "Registrar tempo" form, styled like the activity popup, so the
-/// user can add past time without the web app.
+/// Opens the "Registrar tempo" form as a ZOC modal so the user can add past
+/// time without the web app.
 Future<void> showAddTimeDialog(BuildContext context) async {
-  final saved = await showModalBottomSheet<bool>(
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    enableDrag: false,
-    context: context,
-    builder: (sheet) => GestureDetector(
+  final saved = await showZocModal<bool>(
+    context,
+    barrierDismissible: false,
+    builder: (dialog) => GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-      child: Padding(
-        padding: MediaQuery.viewInsetsOf(sheet),
-        child: const _AddTimeDialog(),
-      ),
+      child: const _AddTimeDialog(),
     ),
   );
   if (saved == null || !context.mounted) return;
@@ -94,6 +83,9 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
   final _clientController = FormFieldController<String>(null);
   final _projectController = FormFieldController<String>(null);
   final _taskController = FormFieldController<String>(null);
+  // Back the disabled placeholders shown until the previous field is picked.
+  final _pendingProject = FormFieldController<String>(null);
+  final _pendingTask = FormFieldController<String>(null);
   late DateTime _start;
   final _duration = TextEditingController();
   final _reason = TextEditingController();
@@ -113,6 +105,8 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
     _clientController.dispose();
     _projectController.dispose();
     _taskController.dispose();
+    _pendingProject.dispose();
+    _pendingTask.dispose();
     _duration.dispose();
     _reason.dispose();
     super.dispose();
@@ -214,270 +208,274 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
     });
   }
 
-  TextStyle _text(double size, FontWeight weight, [Color color = _ink]) =>
-      GoogleFonts.inter(fontSize: size, fontWeight: weight, color: color);
-
-  // Same filled, borderless field as the popup's "Notas".
-  InputDecoration _field(String hint) {
-    final theme = FlutterFlowTheme.of(context);
-    OutlineInputBorder border(Color color) => OutlineInputBorder(
-          borderSide: BorderSide(color: color, width: 1.0),
-          borderRadius: BorderRadius.circular(8.0),
-        );
-    return InputDecoration(
-      isDense: true,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12.0, vertical: 9.0),
-      hintText: hint,
-      hintStyle: _text(14, FontWeight.w400, const Color(0xFF667085)),
-      enabledBorder: border(const Color(0x00000000)),
-      focusedBorder: border(const Color(0x00000000)),
-      disabledBorder: border(const Color(0x00000000)),
-      errorBorder: border(theme.error),
-      focusedErrorBorder: border(theme.error),
-      filled: true,
-      fillColor: theme.primaryBackground,
-    );
-  }
-
-  Widget _dropDown({
+  Widget _select({
     required Key key,
+    required String label,
+    required IconData icon,
     required FormFieldController<String> controller,
     required List<Map> options,
     required String hint,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final theme = FlutterFlowTheme.of(context);
-    return FlutterFlowDropDown<String>(
-      key: key,
-      controller: controller,
-      options: [for (final o in options) '${o['id']}'],
-      optionLabels: [for (final o in options) '${o['name']}'],
-      onChanged: onChanged,
-      width: 400.0,
-      height: 35.0,
-      maxHeight: 200.0,
-      searchHintTextStyle: _text(14, FontWeight.w400),
-      searchTextStyle: _text(14, FontWeight.w400),
-      textStyle: _text(14, FontWeight.w500),
-      hintText: hint,
-      searchHintText: 'Search...',
-      searchCursorColor: theme.primaryBackground,
-      icon: const Icon(Icons.keyboard_arrow_down, color: _brand, size: 25.0),
-      fillColor: theme.primaryBackground,
-      elevation: 1.0,
-      borderColor: theme.secondaryBackground,
-      borderWidth: 0.0,
-      borderRadius: 6.0,
-      margin: const EdgeInsetsDirectional.fromSTEB(12.0, 0.0, 12.0, 0.0),
-      hidesUnderline: true,
-      disabled: _busy,
-      isSearchable: true,
-    );
-  }
+    ValueChanged<String?>? onChanged,
+    bool disabled = false,
+  }) =>
+      ZocSelect<String>(
+        dropDownKey: key,
+        label: label,
+        icon: icon,
+        controller: controller,
+        options: [for (final o in options) '${o['id']}'],
+        optionLabels: [for (final o in options) '${o['name']}'],
+        onChanged: onChanged ?? (_) {},
+        hintText: hint,
+        searchHintText: 'Buscar...',
+        maxHeight: 200,
+        disabled: disabled || _busy,
+        isSearchable: true,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final theme = FlutterFlowTheme.of(context);
-    return Align(
-      child: Container(
-        width: 500.0,
-        height: 570.4,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white,
-              Color(0xFFF6F8FA),
-              Color(0xFFE6F4F3),
-              Color(0xFFD5F0EE),
-            ],
-            stops: [0.0, 0.4, 0.75, 1.0],
-            begin: AlignmentDirectional(-1.0, -1.0),
-            end: AlignmentDirectional(1.0, 1.0),
-          ),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 20.0),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 8.0),
-                      child: ZocLogo(width: 100.0, showTagline: false),
-                    ),
-                    IconButton(
-                      key: const ValueKey('add-time-close'),
-                      tooltip: 'Fechar',
-                      onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, color: _ink, size: 20.0),
-                    ),
-                  ],
+    return ZocModal(
+      width: 520,
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.edit_calendar_outlined,
+                    color: ZocColors.brand, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Registrar tempo',
+                      style: ZocText.h2().copyWith(fontSize: 19)),
                 ),
-              ),
-              Text('Registrar tempo',
-                  style: _text(22, FontWeight.w600).copyWith(letterSpacing: -0.2)),
-              const SizedBox(height: 4.0),
-              Text(
-                _isAdmin
-                    ? 'Como Administrador, seu lançamento é aprovado automaticamente.'
-                    : 'O tempo só entra nos relatórios após aprovação.',
-                style: _text(12, FontWeight.w400, const Color(0xFF667085)),
-              ),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 40.0),
-                  child: CircularProgressIndicator(color: _brand),
-                )
-              else if (_workspace != null)
-                ..._form(theme),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(50.0, 12.0, 50.0, 0.0),
-                  child: Text(_error!,
-                      textAlign: TextAlign.center,
-                      style: _text(13, FontWeight.w500, theme.error)),
+                IconButton(
+                  key: const ValueKey('add-time-close'),
+                  tooltip: 'Fechar',
+                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                  splashRadius: 18,
+                  constraints:
+                      const BoxConstraints.tightFor(width: 36, height: 36),
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.close_rounded,
+                      color: ZocColors.muted, size: 20),
                 ),
-              const SizedBox(height: 20.0),
+              ],
+            ),
+            Text(
+              'Lance um período que não foi registrado.'
+              '${_isAdmin ? '' : ' Ele entra nos relatórios após aprovação.'}',
+              style: ZocText.sub(),
+            ),
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(color: ZocColors.brand),
+                ),
+              )
+            else if (_workspace != null)
+              ..._form(),
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              ZocNotice(_error!, kind: ZocNoticeKind.error),
             ],
-          ),
+            if (_workspace == null && !_loading) ...[
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ZocButton('Fechar',
+                    variant: ZocButtonVariant.ghost,
+                    onPressed: () => Navigator.of(context).pop()),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  List<Widget> _form(FlutterFlowTheme theme) {
+  List<Widget> _form() {
     final clients = _clients;
     final client = _clientController.value;
     final projects = _list('projects')
         .where((p) => clients.isEmpty || '${p['client_id']}' == client);
     final project = _projectController.value;
     final tasks = _list('tasks').where((t) => t['project_id'] == project);
+
+    final projectField = clients.isEmpty || client != null
+        ? _select(
+            key: ValueKey(client == null
+                ? 'add-time-project'
+                : 'add-time-project-$client'),
+            label: 'Projeto',
+            icon: Icons.work_outline_rounded,
+            controller: _projectController,
+            options: projects.toList(),
+            hint: 'Escolha o projeto',
+            onChanged: (_) => setState(() => _taskController.value = null),
+          )
+        : _select(
+            key: const ValueKey('add-time-project-pending'),
+            label: 'Projeto',
+            icon: Icons.work_outline_rounded,
+            controller: _pendingProject,
+            options: const [],
+            hint: 'Escolha o cliente antes',
+            disabled: true,
+          );
+
+    final taskField = project != null
+        ? _select(
+            key: ValueKey('add-time-task-$project'),
+            label: 'Atividade',
+            icon: Icons.checklist_rounded,
+            controller: _taskController,
+            options: tasks.toList(),
+            hint: 'Escolha a atividade',
+            onChanged: (_) => setState(() {}),
+          )
+        : _select(
+            key: const ValueKey('add-time-task-pending'),
+            label: 'Atividade',
+            icon: Icons.checklist_rounded,
+            controller: _pendingTask,
+            options: const [],
+            hint: 'Escolha a atividade',
+            disabled: true,
+          );
+
+    final startText =
+        '${_two(_start.day)}/${_two(_start.month)}/${_start.year} ${_two(_start.hour)}:${_two(_start.minute)}';
+
     return [
-      const SizedBox(height: 16.0),
-      if (clients.isNotEmpty) ...[
-        _dropDown(
-          key: const ValueKey('add-time-client'),
-          controller: _clientController,
-          options: clients,
-          hint: 'Escolha o cliente',
-          onChanged: (_) => setState(() {
-            _projectController.value = null;
-            _taskController.value = null;
-          }),
-        ),
-        const SizedBox(height: 15.0),
-      ],
-      if (clients.isEmpty || client != null)
-        _dropDown(
-          key: ValueKey(
-              client == null ? 'add-time-project' : 'add-time-project-$client'),
-          controller: _projectController,
-          options: projects.toList(),
-          hint: 'Escolha o projeto',
-          onChanged: (_) => setState(() => _taskController.value = null),
-        ),
-      if (project != null) ...[
-        const SizedBox(height: 15.0),
-        _dropDown(
-          key: ValueKey('add-time-task-$project'),
-          controller: _taskController,
-          options: tasks.toList(),
-          hint: 'Escolha a atividade',
-          onChanged: (_) => setState(() {}),
-        ),
-      ],
-      const SizedBox(height: 15.0),
-      SizedBox(
-        width: 400.0,
-        child: Row(
+      const SizedBox(height: 12),
+      if (clients.isNotEmpty)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: InkWell(
-                key: const ValueKey('add-time-start'),
-                borderRadius: BorderRadius.circular(8.0),
-                onTap: _busy ? null : _pickStart,
-                child: InputDecorator(
-                  decoration: _field('Início').copyWith(
-                    suffixIcon: const Icon(Icons.calendar_today_outlined,
-                        color: _brand, size: 18.0),
-                    suffixIconConstraints:
-                        const BoxConstraints(minWidth: 36.0, minHeight: 18.0),
-                  ),
-                  child: Text(
-                    'Início: ${_two(_start.day)}/${_two(_start.month)}/${_start.year} ${_two(_start.hour)}:${_two(_start.minute)}',
-                    style: _text(14, FontWeight.w500),
-                  ),
-                ),
+              child: _select(
+                key: const ValueKey('add-time-client'),
+                label: 'Cliente',
+                icon: Icons.apartment_rounded,
+                controller: _clientController,
+                options: clients,
+                hint: 'Escolha o cliente',
+                onChanged: (_) => setState(() {
+                  _projectController.value = null;
+                  _taskController.value = null;
+                }),
               ),
             ),
-            const SizedBox(width: 12.0),
-            SizedBox(
-              width: 150.0,
-              child: TextFormField(
-                key: const ValueKey('add-time-duration'),
-                controller: _duration,
-                enabled: !_busy,
-                decoration: _field('Duração').copyWith(
-                  prefixText: 'Duração ',
-                  prefixStyle: _text(14, FontWeight.w400, const Color(0xFF667085)),
-                ),
-                style: _text(14, FontWeight.w500),
-                cursorColor: theme.primaryText,
-              ),
-            ),
+            const SizedBox(width: 12),
+            Expanded(child: projectField),
           ],
-        ),
-      ),
-      const SizedBox(height: 15.0),
-      SizedBox(
-        width: 400.0,
-        child: TextFormField(
-          key: const ValueKey('add-time-reason'),
-          controller: _reason,
-          enabled: !_busy,
-          maxLength: 2000,
-          maxLines: 3,
-          decoration: _field('Motivo / descrição').copyWith(counterText: ''),
-          style: _text(14, FontWeight.w400),
-          cursorColor: theme.primaryText,
-        ),
-      ),
-      const SizedBox(height: 12.0),
+        )
+      else
+        projectField,
+      const SizedBox(height: 10),
+      taskField,
+      const SizedBox(height: 10),
       Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Switch.adaptive(
-            value: _remote,
-            onChanged: _busy ? null : (value) => setState(() => _remote = value),
-            activeThumbColor: theme.secondaryBackground,
-            activeTrackColor: _brand,
-            inactiveTrackColor: theme.alternate,
-            inactiveThumbColor: theme.secondaryBackground,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Início', style: ZocText.label()),
+                const SizedBox(height: 6),
+                InkWell(
+                  key: const ValueKey('add-time-start'),
+                  borderRadius: BorderRadius.circular(ZocRadii.input),
+                  onTap: _busy ? null : _pickStart,
+                  child: InputDecorator(
+                    decoration:
+                        zocInputDecoration(icon: Icons.calendar_today_outlined),
+                    child: Text(startText, style: ZocText.body()),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    ZocSwitch(
+                      key: const ValueKey('add-time-remote'),
+                      value: _remote,
+                      onChanged:
+                          _busy ? null : (v) => setState(() => _remote = v),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Trabalho remoto',
+                        style: ZocText.caption(color: ZocColors.text)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 8.0),
-          Text('Trabalho remoto', style: _text(14, FontWeight.w500)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ZocTextField(
+                  key: const ValueKey('add-time-duration'),
+                  label: 'Duração',
+                  icon: Icons.schedule_rounded,
+                  controller: _duration,
+                  enabled: !_busy,
+                  hintText: '01:00',
+                ),
+                const SizedBox(height: 8),
+                Text('Formato HH:mm',
+                    style: ZocText.caption(color: ZocColors.faint)),
+              ],
+            ),
+          ),
         ],
       ),
-      const SizedBox(height: 16.0),
-      FFButtonWidget(
-        key: const ValueKey('add-time-submit'),
-        onPressed: _busy ? null : _submit,
-        text: _isAdmin ? 'REGISTRAR' : 'ENVIAR',
-        options: FFButtonOptions(
-          width: 140.0,
-          height: 50.0,
-          padding: const EdgeInsetsDirectional.fromSTEB(16.0, 0.0, 16.0, 0.0),
-          color: _brand,
-          textStyle: _text(14, FontWeight.bold, theme.secondaryBackground),
-          elevation: 0.0,
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-        showLoadingIndicator: true,
+      const SizedBox(height: 10),
+      ZocTextField(
+        key: const ValueKey('add-time-reason'),
+        label: 'Motivo / descrição',
+        icon: Icons.edit_outlined,
+        controller: _reason,
+        enabled: !_busy,
+        hintText: 'Ex.: reunião fora do computador',
+        inputFormatters: [LengthLimitingTextInputFormatter(2000)],
+      ),
+      const SizedBox(height: 10),
+      ZocNotice(
+        _isAdmin
+            ? 'Como Administrador, seu lançamento é aprovado automaticamente.'
+            : 'O tempo só entra nos relatórios após aprovação do supervisor.',
+      ),
+      const SizedBox(height: 14),
+      Row(
+        children: [
+          Expanded(
+            child: ZocButton(
+              'Cancelar',
+              variant: ZocButtonVariant.ghost,
+              expanded: true,
+              onPressed: _busy ? null : () => Navigator.of(context).pop(),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ZocButton(
+              _isAdmin ? 'Registrar' : 'Enviar solicitação',
+              key: const ValueKey('add-time-submit'),
+              icon: Icons.check_rounded,
+              expanded: true,
+              loading: _busy,
+              onPressed: _submit,
+            ),
+          ),
+        ],
       ),
     ];
   }
