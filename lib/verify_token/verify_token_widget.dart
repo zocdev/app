@@ -1,7 +1,5 @@
 import '/backend/api_requests/api_calls.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/flutter_flow/flutter_flow_widgets.dart';
 import '/utils/api_error_helper.dart';
 import '/utils/error_handler.dart';
 import '/utils/screenshot_consent_dialog.dart';
@@ -9,10 +7,9 @@ import 'dart:async';
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'verify_token_model.dart';
-import '/utils/zoc_logo.dart';
+import '/ui/zoc_ui.dart';
 export 'verify_token_model.dart';
 
 class VerifyTokenWidget extends StatefulWidget {
@@ -292,17 +289,9 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
   }
 
   Widget _buildOtpBox(int index) {
-    final hasFocus = _model.otpFocusNodes[index].hasFocus;
-    final hasValue = _model.otpControllers[index].text.isNotEmpty;
-    final borderColor = hasFocus
-        ? const Color(0xFF0F8F8A)
-        : hasValue
-            ? const Color(0xFF0F8F8A)
-            : FlutterFlowTheme.of(context).alternate;
-
     return SizedBox(
       width: 44.0,
-      height: 44.0,
+      height: 52.0,
       child: Focus(
         onKeyEvent: (node, event) => _onOtpKeyEvent(index, event),
         child: TextField(
@@ -312,39 +301,14 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          style: FlutterFlowTheme.of(context).bodyLarge.override(
-                font: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                ),
-                letterSpacing: 0.0,
-                fontWeight: FontWeight.w600,
-              ),
+          cursorColor: ZocColors.brand,
+          style: ZocText.h2(),
           inputFormatters: [
             FilteringTextInputFormatter.digitsOnly,
           ],
-          decoration: InputDecoration(
+          decoration: zocInputDecoration().copyWith(
             counterText: '',
-            hintText: '●',
-            hintStyle: TextStyle(
-              color: FlutterFlowTheme.of(context).alternate,
-            ),
-            contentPadding: EdgeInsets.zero,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(color: borderColor, width: 2.0),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide:
-                  const BorderSide(color: Color(0xFF0F8F8A), width: 2.0),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-              borderSide: BorderSide(
-                color: FlutterFlowTheme.of(context).alternate,
-                width: 2.0,
-              ),
-            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 13),
           ),
           onChanged: (value) => _onOtpChanged(index, value),
           onTap: () {
@@ -358,6 +322,12 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
     );
   }
 
+  String _cooldownLabel() {
+    final m = _resendCooldownSeconds ~/ 60;
+    final s = (_resendCooldownSeconds % 60).toString().padLeft(2, '0');
+    return 'Reenviar em $m:$s';
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
@@ -368,238 +338,86 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
         FocusScope.of(context).unfocus();
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          top: true,
-          child: Align(
-            alignment: const AlignmentDirectional(0.0, 0.0),
-            child: SafeArea(
-              child: Container(
-                width: 500.0,
-                height: 480.0,
-                decoration: BoxDecoration(
-                  color: FlutterFlowTheme.of(context).secondaryBackground,
-                  boxShadow: const [
-                    BoxShadow(
-                      blurRadius: 4.0,
-                      color: Color(0x33000000),
-                      offset: Offset(0.0, 2.0),
-                    )
-                  ],
-                  border: Border.all(color: Colors.transparent),
-                ),
-                child: Align(
-                  alignment: const AlignmentDirectional(0.0, -1.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            20.0, 0.0, 20.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const ZocLogo(
-                              width: 100.0,
-                              showTagline: false,
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                context.goNamed(LoginWidget.routeName);
-                              },
-                              icon: const Icon(
-                                Icons.close,
-                                color: Color(0xFF101827),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            40.0, 20.0, 40.0, 0.0),
-                        child: Column(
-                          children: [
-                            Text(
-                              'Confirmar e-mail',
-                              textAlign: TextAlign.center,
-                              style: FlutterFlowTheme.of(context)
-                                  .displaySmall
-                                  .override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    color: const Color(0xFF101827),
-                                    fontSize: 20.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 12.0, 0.0, 0.0),
-                              child: Text(
-                                email.isEmpty
-                                    ? 'Digite o código de 6 dígitos enviado ao seu e-mail.'
-                                    : 'Digite o código de 6 dígitos enviado para\n$email',
-                                textAlign: TextAlign.center,
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.normal,
-                                      ),
-                                      color: const Color(0xFF101827),
-                                      fontSize: 14.0,
-                                      letterSpacing: 0.0,
-                                    ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  20.0, 30.0, 20.0, 0.0),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: List.generate(
-                                  VerifyTokenModel.otpLength,
-                                  _buildOtpBox,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 20.0, 0.0, 0.0),
-                        child: FFButtonWidget(
-                          onPressed: _isConfirming
-                              ? null
-                              : () async {
-                                  await _confirmOtp();
-                                },
-                          text: _isConfirming ? 'Confirmando...' : 'Confirmar',
-                          options: FFButtonOptions(
-                            width: 150.0,
-                            height: 40.0,
-                            padding: const EdgeInsetsDirectional.fromSTEB(
-                                16.0, 0.0, 16.0, 0.0),
-                            color: const Color(0xFF0F8F8A),
-                            disabledColor:
-                                const Color(0xFF0F8F8A).withValues(alpha: 0.5),
-                            textStyle: FlutterFlowTheme.of(context)
-                                .labelSmall
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  color: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  fontSize: 16.0,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                            elevation: 0.0,
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 30.0, 0.0, 0.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 10.0, 2.0),
-                              child: Text(
-                                'Não recebeu o e-mail?',
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.normal,
-                                      ),
-                                      color: const Color(0xFF101827),
-                                      fontSize: 13.0,
-                                      letterSpacing: 0.0,
-                                    ),
-                              ),
-                            ),
-                            InkWell(
-                              splashColor: Colors.transparent,
-                              focusColor: Colors.transparent,
-                              hoverColor: Colors.transparent,
-                              highlightColor: Colors.transparent,
-                              onTap: _canResend
-                                  ? () async {
-                                      await _resendConfirmation();
-                                    }
-                                  : null,
-                              child: Text(
-                                _isResending
-                                    ? 'enviando...'
-                                    : _resendCooldownSeconds > 0
-                                        ? 'reenviar (${_resendCooldownSeconds}s)'
-                                        : 'reenviar e-mail',
-                                style: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      color: _canResend
-                                          ? const Color(0xFF0F8F8A)
-                                          : const Color(0xFF101827)
-                                              .withValues(alpha: 0.4),
-                                      fontSize: 13.0,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                            0.0, 24.0, 0.0, 0.0),
-                        child: InkWell(
-                          splashColor: Colors.transparent,
-                          focusColor: Colors.transparent,
-                          hoverColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                          onTap: () {
-                            context.goNamed(EntrarConSenhaWidget.routeName);
-                          },
-                          child: Text(
-                            'Voltar para o login',
-                            style:
-                                FlutterFlowTheme.of(context).bodyMedium.override(
-                                      font: GoogleFonts.inter(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      color: const Color(0xFF0F8F8A),
-                                      fontSize: 13.0,
-                                      letterSpacing: 0.0,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      child: ZocAuthScaffold(
+        scaffoldKey: scaffoldKey,
+        center: true,
+        topAction: IconButton(
+          onPressed: () {
+            context.goNamed(LoginWidget.routeName);
+          },
+          icon: const Icon(Icons.close_rounded, color: ZocColors.muted),
+        ),
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ZocTitle(
+              'Confirmar e-mail',
+              center: true,
+              subtitle: email.isEmpty
+                  ? 'Digite o código de 6 dígitos enviado ao seu e-mail.'
+                  : 'Digite o código de 6 dígitos enviado para\n$email',
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(
+                VerifyTokenModel.otpLength,
+                _buildOtpBox,
               ),
             ),
-          ),
+            const SizedBox(height: 16),
+            ZocButton(
+              _isConfirming ? 'Confirmando...' : 'Confirmar',
+              expanded: true,
+              loading: _isConfirming,
+              onPressed: _isConfirming
+                  ? null
+                  : () async {
+                      await _confirmOtp();
+                    },
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text('Não recebeu? ', style: ZocText.sub()),
+                InkWell(
+                  splashColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  onTap: _canResend
+                      ? () async {
+                          await _resendConfirmation();
+                        }
+                      : null,
+                  child: Text(
+                    _isResending
+                        ? 'Enviando...'
+                        : _resendCooldownSeconds > 0
+                            ? _cooldownLabel()
+                            : 'Reenviar e-mail',
+                    style: _canResend
+                        ? ZocText.link()
+                        : ZocText.sub(color: ZocColors.faint),
+                  ),
+                ),
+                Text(' · ', style: ZocText.sub()),
+                InkWell(
+                  splashColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  hoverColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  onTap: () {
+                    context.goNamed(EntrarConSenhaWidget.routeName);
+                  },
+                  child: Text('Voltar ao login', style: ZocText.link()),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
