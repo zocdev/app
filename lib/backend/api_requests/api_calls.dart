@@ -444,8 +444,12 @@ class RegisterUserCall {
 class VerifyOtpCall {
   static Future<ApiCallResponse> call({
     String? otp,
+    String? email,
   }) async {
-    final request = ConfirmEmailRequest(otp: otp ?? '');
+    final request = ConfirmEmailRequest(
+      otp: otp ?? '',
+      email: (email ?? '').trim().toLowerCase(),
+    );
     return ApiManager.instance.makeApiCall(
       callName: 'verifyOtp',
       apiUrl: '${getBaseApiUrl()}/api/v1/auth/confirm-email',

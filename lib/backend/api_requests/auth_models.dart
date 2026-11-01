@@ -35,11 +35,20 @@ class MessageResponse {
 }
 
 class ConfirmEmailRequest {
-  const ConfirmEmailRequest({required this.otp});
+  const ConfirmEmailRequest({required this.otp, this.email});
 
   final String otp;
 
-  Map<String, dynamic> toJson() => {'otp': otp};
+  /// Account the OTP belongs to; the API checks the code against it only.
+  final String? email;
+
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{'otp': otp};
+    if (email != null && email!.isNotEmpty) {
+      json['email'] = email;
+    }
+    return json;
+  }
 }
 
 class ResendConfirmationRequest {

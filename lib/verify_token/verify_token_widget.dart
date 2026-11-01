@@ -182,7 +182,10 @@ class _VerifyTokenWidgetState extends State<VerifyTokenWidget> {
     });
 
     try {
-      _model.otpResult = await VerifyOtpCall.call(otp: otp);
+      _model.otpResult = await VerifyOtpCall.call(
+        otp: otp,
+        email: FFAppState().email,
+      );
       if (!mounted) return;
 
       final result = _model.otpResult;
