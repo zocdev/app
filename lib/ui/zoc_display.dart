@@ -69,6 +69,28 @@ class ZocHeroIcon extends StatelessWidget {
 
 /// 6px rounded progress bar. [value] is clamped to 0..1. [onDark] = white bar
 /// on a 20% white track (inside [ZocHeroCard]).
+/// Worked time against a goal. [ratio] may pass 1; [overtimeHours] is the
+/// time past the goal (0 until the goal is reached).
+class ZocGoalProgress {
+  const ZocGoalProgress(this.worked, this.goal);
+
+  final double worked;
+  final double? goal;
+
+  double get ratio {
+    final g = goal;
+    if (g == null || g <= 0 || worked.isNaN) return 0;
+    return worked < 0 ? 0 : worked / g;
+  }
+
+  bool get reached => goal != null && goal! > 0 && ratio >= 1;
+  double get overtimeHours => reached ? worked - goal! : 0;
+  bool get hasOvertime => overtimeHours * 60 >= 1;
+}
+
+/// Progress bar. Past 100% the bar is full and its last part turns
+/// [ZocColors.overtime], sized to the share of the total that is overtime
+/// (10h on an 8h goal: last 20%).
 class ZocProgressBar extends StatelessWidget {
   const ZocProgressBar(
       {super.key, required this.value, this.onDark = false, this.height = 6});
@@ -78,23 +100,54 @@ class ZocProgressBar extends StatelessWidget {
   final double height;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(ZocRadii.pill),
-        child: Container(
-          height: height,
-          color: onDark ? const Color(0x33FFFFFF) : ZocColors.brandSoft,
-          alignment: Alignment.centerLeft,
-          child: FractionallySizedBox(
-            widthFactor: value.isNaN ? 0 : value.clamp(0.0, 1.0),
-            heightFactor: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: onDark ? Colors.white : ZocColors.brand,
-                borderRadius: BorderRadius.circular(ZocRadii.pill),
+  Widget build(BuildContext context) {
+    final v = value.isNaN ? 0.0 : value;
+    final fill = onDark ? Colors.white : ZocColors.brand;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(ZocRadii.pill),
+      child: Container(
+        height: height,
+        color: onDark ? const Color(0x33FFFFFF) : ZocColors.brandSoft,
+        alignment: v > 1 ? null : Alignment.centerLeft,
+        child: v > 1
+            ? Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Expanded(
+                    flex: (1000 / v).round(), child: ColoredBox(color: fill)),
+                Expanded(
+                    flex: 1000 - (1000 / v).round(),
+                    child: const ColoredBox(color: ZocColors.overtime)),
+              ])
+            : FractionallySizedBox(
+                widthFactor: v.clamp(0.0, 1.0),
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: fill,
+                    borderRadius: BorderRadius.circular(ZocRadii.pill),
+                  ),
+                ),
               ),
-            ),
-          ),
+      ),
+    );
+  }
+}
+
+/// Red pill "+2h 00min além da meta".
+class ZocOvertimePill extends StatelessWidget {
+  const ZocOvertimePill(this.label, {super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: ZocColors.overtime,
+          borderRadius: BorderRadius.circular(ZocRadii.pill),
         ),
+        child: Text(label,
+            style:
+                ZocText.caption(color: Colors.white, weight: FontWeight.w600)),
       );
 }
 

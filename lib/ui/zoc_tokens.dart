@@ -42,6 +42,9 @@ abstract final class ZocColors {
   static const badSoft = Color(0xFFFEE2E2);
   static const badInk = Color(0xFFB91C1C);
 
+  /// Time past the goal. Brighter than [bad] so it reads on the teal hero.
+  static const overtime = Color(0xFFFF4D4F);
+
   /// Off track of switches and empty checkbox border.
   static const control = Color(0xFFCBD5E1);
 

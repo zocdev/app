@@ -35,7 +35,9 @@ int _weekdays(DateTime a, DateTime b) {
   var end = DateTime(b.year, b.month, b.day);
   if (end.isBefore(start)) (start, end) = (end, start);
   var count = 0;
-  for (var d = start; !d.isAfter(end); d = DateTime(d.year, d.month, d.day + 1)) {
+  for (var d = start;
+      !d.isAfter(end);
+      d = DateTime(d.year, d.month, d.day + 1)) {
     if (d.weekday <= DateTime.friday) count++;
   }
   return count < 1 ? 1 : count;
@@ -303,11 +305,10 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
 
   String get _locale => FFLocalizations.of(context).languageCode;
 
-  List<Map> get _tasks => (_model.tasksDone is List
-          ? (_model.tasksDone as List)
-          : const [])
-      .whereType<Map>()
-      .toList();
+  List<Map> get _tasks =>
+      (_model.tasksDone is List ? (_model.tasksDone as List) : const [])
+          .whereType<Map>()
+          .toList();
 
   bool get _customRange => _model.initDate != null || _model.endDate != null;
 
@@ -534,12 +535,17 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   Widget _hero() {
     final worked = _model.workedHours ?? 0;
     final goal = _model.goalHours;
-    final ratio = goal == null || goal <= 0 ? 0.0 : worked / goal;
+    final progress = ZocGoalProgress(worked, goal);
+    final ratio = progress.ratio;
     final caption = goal == null
         ? 'Carregando meta…'
-        : '${(ratio * 100).round()}% da meta de ${expedienteGoalLabel(goal)}';
-    final soft = ZocText.caption(color: const Color(0xE6FFFFFF))
-        .copyWith(fontSize: 13);
+        : progress.reached
+            ? (progress.hasOvertime
+                ? 'Meta cumprida ✓'
+                : 'Meta de ${expedienteGoalLabel(goal)} cumprida ✓')
+            : '${(ratio * 100).round()}% da meta de ${expedienteGoalLabel(goal)}';
+    final soft =
+        ZocText.caption(color: const Color(0xE6FFFFFF)).copyWith(fontSize: 13);
     return ZocHeroCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
@@ -560,7 +566,19 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
                 style: ZocText.big(color: Colors.white)),
           ),
           ZocProgressBar(value: ratio, onDark: true),
-          Text(caption, style: soft),
+          Row(
+            children: [
+              Flexible(
+                child: Text(caption,
+                    style: soft, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              if (progress.hasOvertime) ...[
+                const SizedBox(width: 8),
+                ZocOvertimePill(
+                    '+${expedienteHoursLabel(progress.overtimeHours)} além da meta'),
+              ],
+            ],
+          ),
         ],
       ),
     );
@@ -628,8 +646,8 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
     final hours = task['hours'];
     final start = time('created_at'), end = time('ended_at');
     String hm(DateTime d) => dateTimeFormat('HH:mm', d, locale: _locale);
-    var range = [if (start != null) hm(start), if (end != null) hm(end)]
-        .join(' – ');
+    var range =
+        [if (start != null) hm(start), if (end != null) hm(end)].join(' – ');
     if (showDate && start != null) {
       final day = dateTimeFormat('dd/MM', start, locale: _locale);
       range = range.isEmpty ? day : '$day · $range';
@@ -673,7 +691,8 @@ class _MiniStat extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: Row(
           children: [
-            Icon(icon, size: 15, color: warn ? ZocColors.warn : ZocColors.brand),
+            Icon(icon,
+                size: 15, color: warn ? ZocColors.warn : ZocColors.brand),
             const SizedBox(width: 8),
             Expanded(
               child: Text(label,

@@ -14,7 +14,8 @@ export 'logout_model.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
 import '/utils/time_tracking.dart';
-import '/expediente/expediente_widget.dart' show expedienteGoalLabel;
+import '/expediente/expediente_widget.dart'
+    show expedienteGoalLabel, expedienteHoursLabel;
 import '/ui/zoc_ui.dart';
 import 'popup_countdown.dart';
 
@@ -368,7 +369,9 @@ class _LogoutWidgetState extends State<LogoutWidget>
             .map((part) => part[0].toUpperCase() + part.substring(1))
             .join(' ');
     final enabled = isTimeTrackingEnabled();
-    final progress = ((_workedHours ?? 0) / _dailyGoalHours).clamp(0.0, 1.0);
+    final goalProgress = ZocGoalProgress(_workedHours ?? 0, _dailyGoalHours);
+    final progress = goalProgress.ratio;
+    final extraLap = (progress - 1).clamp(0.0, 1.0);
     final totalMinutes = ((_workedHours ?? 0) * 60).round();
 
     return GestureDetector(
@@ -469,6 +472,11 @@ class _LogoutWidgetState extends State<LogoutWidget>
                                 ? '—'
                                 : '${totalMinutes ~/ 60}h ${(totalMinutes % 60).toString().padLeft(2, '0')}min',
                             style: ZocText.big(color: ZocColors.surface)),
+                        if (goalProgress.hasOvertime) ...[
+                          const SizedBox(height: 4),
+                          ZocOvertimePill(
+                              '+${expedienteHoursLabel(goalProgress.overtimeHours)} além da meta'),
+                        ],
                       ],
                     ),
                   ),
@@ -482,7 +490,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
                         children: [
                           Positioned.fill(
                             child: CircularProgressIndicator(
-                              value: progress,
+                              value: progress.clamp(0.0, 1.0),
                               strokeWidth: 6,
                               strokeCap: StrokeCap.round,
                               backgroundColor:
@@ -490,6 +498,16 @@ class _LogoutWidgetState extends State<LogoutWidget>
                               color: ZocColors.surface,
                             ),
                           ),
+                          if (extraLap > 0)
+                            Positioned.fill(
+                              child: CircularProgressIndicator(
+                                value: extraLap,
+                                strokeWidth: 6,
+                                strokeCap: StrokeCap.round,
+                                backgroundColor: Colors.transparent,
+                                color: ZocColors.overtime,
+                              ),
+                            ),
                           Text('${(progress * 100).round()}%',
                               style: ZocText.label(color: ZocColors.surface)),
                         ],
