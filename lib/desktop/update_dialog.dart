@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'app_updater.dart';
+import '/ui/zoc_ui.dart';
 
 Future<void> checkAndPromptDesktopUpdate({
   required BuildContext context,
@@ -21,55 +22,57 @@ Future<void> checkAndPromptDesktopUpdate({
 
   if (!context.mounted) return;
 
-  const brand = Color(0xFF0F8F8A);
-
-  final accepted = await showDialog<bool>(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Atualização disponível'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Nova versão: ${update.version}'),
-          if (update.notes != null && update.notes!.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(update.notes!),
-          ],
+  final accepted = await showZocModal<bool>(
+    context,
+    builder: (ctx) => ZocModal(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const ZocHeroIcon(Icons.download_rounded),
+        const SizedBox(height: 14),
+        ZocTitle('Atualização disponível',
+            center: true,
+            small: true,
+            subtitle: 'A versão ${update.version} está pronta para instalar.'),
+        if (update.notes != null && update.notes!.trim().isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 100),
+              child: SingleChildScrollView(
+                  child: Text(update.notes!, style: ZocText.sub()))),
         ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          style: TextButton.styleFrom(foregroundColor: brand),
-          child: const Text('Depois'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: brand,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Atualizar'),
-        ),
+        const SizedBox(height: 18),
+        Row(children: [
+          Expanded(
+              child: ZocButton('Depois',
+                  expanded: true,
+                  variant: ZocButtonVariant.secondary,
+                  onPressed: () => Navigator.of(ctx).pop(false))),
+          const SizedBox(width: 10),
+          Expanded(
+              child: ZocButton('Atualizar',
+                  expanded: true,
+                  icon: Icons.refresh_rounded,
+                  onPressed: () => Navigator.of(ctx).pop(true))),
+        ]),
       ],
-    ),
+    )),
   );
 
   if (accepted != true || !context.mounted) return;
 
-  showDialog<void>(
-    context: context,
+  showZocModal<void>(
+    context,
     barrierDismissible: false,
-    builder: (_) => AlertDialog(
-      content: Row(
-        children: [
-          CircularProgressIndicator(color: brand),
-          const SizedBox(width: 20),
-          const Expanded(child: Text('Baixando atualização...')),
-        ],
-      ),
+    builder: (_) => ZocModal(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const ZocHeroIcon(Icons.download_rounded),
+        const SizedBox(height: 14),
+        const ZocTitle('Baixando atualização...', center: true, small: true),
+        const SizedBox(height: 18),
+        const LinearProgressIndicator(
+            color: ZocColors.brand, backgroundColor: ZocColors.brandSoft),
+      ]),
     ),
   );
 
