@@ -2,8 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-const Size kDesktopWindowSize = Size(510, 435);
-const Size kDesktopPopupWindowSize = Size(510, 600);
+// Outer window sizes. They include the OS title bar (~28 px on macOS,
+// ~32 px on Windows), so each is a bit larger than the content it holds.
+const Size kDesktopWindowSize = Size(540, 480);
+const Size kDesktopPopupWindowSize = Size(540, 650);
+const Size kDesktopMainWindowSize = Size(620, 660);
 
 bool get isDesktopWindow =>
     !kIsWeb &&

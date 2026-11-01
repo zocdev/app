@@ -19,6 +19,7 @@ import 'flutter_flow/flutter_flow_util.dart';
 import 'flutter_flow/internationalization.dart';
 import 'index.dart';
 import '/ui/zoc_theme.dart';
+import '/desktop/popup_window.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -68,9 +69,9 @@ void main() async {
     try {
       await windowManager.ensureInitialized();
       WindowOptions windowOptions = const WindowOptions(
-        size: Size(510, 435),
-        minimumSize: Size(510, 435),
-        maximumSize: Size(600, 600),
+        size: kDesktopWindowSize,
+        minimumSize: kDesktopWindowSize,
+        maximumSize: kDesktopMainWindowSize,
         center: true,
         title: "ZOC",
         skipTaskbar: false,

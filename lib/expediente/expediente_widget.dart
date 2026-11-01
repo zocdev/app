@@ -13,6 +13,7 @@ import 'expediente_model.dart';
 export 'expediente_model.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io' show Platform;
+import '/desktop/popup_window.dart';
 
 /// "3h 30min", "1h 00min" or "20min".
 String expedienteHoursLabel(double? hours) {
@@ -63,7 +64,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
     super.initState();
     _model = createModel(context, () => ExpedienteModel());
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      windowManager.setSize(const Size(600, 600));
+      windowManager.setSize(kDesktopMainWindowSize);
     }
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
@@ -87,7 +88,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   void dispose() {
     _model.dispose();
     if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      windowManager.setSize(const Size(510, 435));
+      windowManager.setSize(kDesktopWindowSize);
     }
 
     super.dispose();
