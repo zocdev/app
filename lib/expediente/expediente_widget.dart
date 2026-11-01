@@ -61,6 +61,9 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   bool _loading = true;
   int _loadSeq = 0;
 
+  /// Label and dates of the loaded records: the PDF prints them together.
+  (String, DateTime, DateTime)? _loadedPeriod;
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +105,11 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   Future<void> _load(String period, {DateTime? start, DateTime? end}) async {
     final seq = ++_loadSeq;
     bool current() => mounted && seq == _loadSeq;
+    // The previous selection's records must not be shown or exported as this one's.
+    _model.tasksDone = null;
+    _model.ignoredPopUps = null;
+    _loadedPeriod = _selectedPeriod();
+    safeSetState(() => _loading = true);
     final token = currentAuthenticationToken;
     final userId = UserDataStruct.maybeFromMap(FFAppState().UserData)?.user.id;
     final rawUserId = getJsonField(
@@ -270,8 +278,13 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
   }
 
   Future<void> _exportPdf() async {
-    if (_exporting) return;
+    final period = _loadedPeriod;
+    if (_exporting || _loading || period == null) return;
     _exporting = true;
+    // Taken before any await: a period change meanwhile must not mix selections.
+    final (label, start, end) = period;
+    final activities = _tasks;
+    final ignoredPopUps = _model.ignoredPopUps;
     try {
       final org = await _loadOrg();
       final user = getJsonField(FFAppState().UserData, r'''$.user''');
@@ -281,25 +294,15 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
               .where((v) => v.isNotEmpty && v != 'null')
               .join(' ')
           : '';
-      final ranged = _model.initDate != null && _model.endDate != null;
-      final (start, end) =
-          ranged ? (_model.initDate!, _model.endDate!) : _periodBounds();
-      final label = ranged
-          ? 'Período personalizado'
-          : _model.week
-              ? 'Semana'
-              : _model.month
-                  ? 'Mês'
-                  : 'Dia';
       await actions.generatePDF(
-        activities: _tasks,
+        activities: activities,
         userName: userName,
         orgName: org?['name']?.toString(),
         orgAvatarUrl: org?['avatar']?.toString(),
         periodLabel: label,
-        periodStart: start.isAfter(end) ? end : start,
-        periodEnd: start.isAfter(end) ? start : end,
-        ignoredPopUps: _model.ignoredPopUps,
+        periodStart: start,
+        periodEnd: end,
+        ignoredPopUps: ignoredPopUps,
       );
     } finally {
       _exporting = false;
@@ -314,6 +317,21 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
           .toList();
 
   bool get _customRange => _model.initDate != null || _model.endDate != null;
+
+  /// Label and dates of the selected period, as the PDF prints them.
+  (String, DateTime, DateTime) _selectedPeriod() {
+    final ranged = _model.initDate != null && _model.endDate != null;
+    final (start, end) =
+        ranged ? (_model.initDate!, _model.endDate!) : _periodBounds();
+    final label = ranged
+        ? 'Período personalizado'
+        : _model.week
+            ? 'Semana'
+            : _model.month
+                ? 'Mês'
+                : 'Dia';
+    return start.isAfter(end) ? (label, end, start) : (label, start, end);
+  }
 
   /// Dates covered by Dia / Semana (Mon–Sun) / Mês, as the API resolves them.
   (DateTime, DateTime) _periodBounds() {
@@ -456,7 +474,7 @@ class _ExpedienteWidgetState extends State<ExpedienteWidget> {
         _IconAction(
           icon: Icons.picture_as_pdf_outlined,
           tooltip: 'Exportar PDF',
-          onTap: _exportPdf,
+          onTap: _loading ? null : _exportPdf,
         ),
         const SizedBox(width: 4),
         _IconAction(
@@ -723,7 +741,7 @@ class _IconAction extends StatelessWidget {
 
   final IconData icon;
   final String tooltip;
-  final Future<void> Function() onTap;
+  final Future<void> Function()? onTap;
   final bool ghost;
   final double size;
 
@@ -746,7 +764,11 @@ class _IconAction extends StatelessWidget {
                 dimension: size,
                 child: Icon(icon,
                     size: ghost ? 18 : 16,
-                    color: ghost ? ZocColors.muted : ZocColors.brand),
+                    color: onTap == null
+                        ? ZocColors.faint
+                        : ghost
+                            ? ZocColors.muted
+                            : ZocColors.brand),
               ),
             ),
           ),
