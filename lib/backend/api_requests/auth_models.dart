@@ -66,6 +66,7 @@ class RegisterAppRequest {
     required this.termsAccepted,
     this.firstName,
     this.lastName,
+    this.code,
   });
 
   final String email;
@@ -73,6 +74,10 @@ class RegisterAppRequest {
   final bool termsAccepted;
   final String? firstName;
   final String? lastName;
+
+  /// Activation code e-mailed by `POST /auth/activation-code`. Required by
+  /// register-app for desktop invite activation (no `inviteToken`).
+  final String? code;
 
   Map<String, dynamic> toJson() {
     final json = <String, dynamic>{
@@ -85,6 +90,9 @@ class RegisterAppRequest {
     }
     if (lastName != null && lastName!.isNotEmpty) {
       json['lastName'] = lastName;
+    }
+    if (code != null && code!.isNotEmpty) {
+      json['code'] = code;
     }
     return json;
   }

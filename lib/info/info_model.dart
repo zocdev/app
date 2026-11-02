@@ -8,6 +8,11 @@ class InfoModel extends FlutterFlowModel<InfoWidget> {
   ///  State fields for stateful widgets in this page.
 
   final formKey = GlobalKey<FormState>();
+  // State field(s) for the activation code widget.
+  FocusNode? codeFocusNode;
+  TextEditingController? codeTextController;
+  // Stores action output result for [Backend Call - API (activationCode)].
+  ApiCallResponse? activationCodeResult;
   // State field(s) for email widget.
   FocusNode? emailFocusNode1;
   TextEditingController? emailTextController1;
@@ -39,6 +44,9 @@ class InfoModel extends FlutterFlowModel<InfoWidget> {
 
   @override
   void dispose() {
+    codeFocusNode?.dispose();
+    codeTextController?.dispose();
+
     emailFocusNode1?.dispose();
     emailTextController1?.dispose();
 

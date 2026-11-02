@@ -412,6 +412,7 @@ class RegisterUserCall {
     bool? termsAccepted,
     String? firstName,
     String? lastName,
+    String? code,
   }) async {
     final request = RegisterAppRequest(
       email: email ?? '',
@@ -419,6 +420,7 @@ class RegisterUserCall {
       termsAccepted: termsAccepted ?? false,
       firstName: firstName,
       lastName: lastName,
+      code: code?.trim(),
     );
     return ApiManager.instance.makeApiCall(
       callName: 'registerUser',
@@ -438,6 +440,46 @@ class RegisterUserCall {
       isStreamingApi: false,
       alwaysAllowBody: false,
     );
+  }
+}
+
+/// Asks the server to e-mail a 6-digit activation code to a pending invitee.
+/// The server always answers 200 for a well-formed e-mail (no enumeration).
+class ActivationCodeCall {
+  static const invalidActivationCode = 'invalid_activation_code';
+  static const activationCodeRequired = 'activation_code_required';
+
+  static Future<ApiCallResponse> call({
+    String? email = '',
+  }) async {
+    final normalizedEmail = (email ?? '').trim().toLowerCase();
+    return ApiManager.instance.makeApiCall(
+      callName: 'activationCode',
+      apiUrl: '${getBaseApiUrl()}/api/v1/auth/activation-code',
+      callType: ApiCallType.POST,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      params: {},
+      body: jsonEncode({'email': normalizedEmail}),
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: true,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  /// The `error` string of a register-app 400 answer, e.g.
+  /// [invalidActivationCode] or [activationCodeRequired].
+  static String? registerError(ApiCallResponse response) {
+    final body = response.jsonBody;
+    if (body is! Map) return null;
+    final error = body['error'];
+    return error is String ? error : null;
   }
 }
 
