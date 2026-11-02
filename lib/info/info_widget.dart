@@ -1,6 +1,7 @@
 import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/index.dart';
+import '/utils/error_handler.dart';
 import '/utils/screenshot_consent_dialog.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _InfoWidgetState extends State<InfoWidget> {
   bool _passwordsDiffer = false;
   bool _codeSent = false;
   bool _codeSendFailed = false;
+  bool _codeSendRateLimited = false;
   bool _isSendingCode = false;
   bool _isSubmitting = false;
   bool _invalidCode = false;
@@ -117,6 +119,8 @@ class _InfoWidgetState extends State<InfoWidget> {
       safeSetState(() {
         _codeSent = _codeSent || sent;
         _codeSendFailed = !sent;
+        _codeSendRateLimited =
+            !sent && _model.activationCodeResult?.statusCode == 429;
         if (sent) _invalidCode = false;
       });
       if (sent) _startResendCooldown();
@@ -213,6 +217,11 @@ class _InfoWidgetState extends State<InfoWidget> {
         return;
       }
 
+      if (result?.statusCode == 429) {
+        await _showError(AppError.tooManyAttemptsMessage);
+        return;
+      }
+
       await _showError('Usuario não criado', title: 'Atencão');
     } finally {
       if (mounted) safeSetState(() => _isSubmitting = false);
@@ -251,8 +260,10 @@ class _InfoWidgetState extends State<InfoWidget> {
               ),
               const SizedBox(height: 14),
               if (_codeSendFailed)
-                const ZocNotice(
-                  'Não foi possível enviar o código. Tente reenviar.',
+                ZocNotice(
+                  _codeSendRateLimited
+                      ? AppError.tooManyAttemptsMessage
+                      : 'Não foi possível enviar o código. Tente reenviar.',
                   kind: ZocNoticeKind.error,
                 )
               else if (_codeSent)

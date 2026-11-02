@@ -34,6 +34,10 @@ class AppError {
     this.metadata,
   });
 
+  /// Shown when the API answers 429 (login e-mail locked or a rate limiter).
+  static const String tooManyAttemptsMessage =
+      'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+
   String get displayMessage => userMessage ?? _getDefaultMessage();
 
   String _getDefaultMessage() {
@@ -155,6 +159,9 @@ class AppError {
     } else if (statusCode == 404) {
       type = ErrorType.unknown;
       userMessage = 'Recurso não encontrado.';
+    } else if (statusCode == 429) {
+      type = ErrorType.unknown;
+      userMessage = tooManyAttemptsMessage;
     } else if (statusCode >= 500) {
       type = ErrorType.server;
       userMessage = 'Erro no servidor. Tente novamente mais tarde.';

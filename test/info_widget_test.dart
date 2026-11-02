@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:zoc/backend/api_requests/auth_models.dart';
 import 'package:zoc/flutter_flow/flutter_flow_util.dart';
 import 'package:zoc/info/info_widget.dart';
+import 'package:zoc/utils/error_handler.dart';
 
 http.Response jsonResponse(Object body, [int code = 200]) => http.Response(
       jsonEncode(body),
@@ -46,12 +47,13 @@ Widget app() {
   );
 }
 
-/// Records every request and answers activation-code with 200 and
-/// register-app with [register].
+/// Records every request and answers activation-code with [activationCode]
+/// (200 by default) and register-app with [register].
 class FakeServer {
-  FakeServer(this.register);
+  FakeServer(this.register, {this.activationCode});
 
   final http.Response Function(Map<String, dynamic> body) register;
+  final http.Response Function()? activationCode;
   final List<http.Request> requests = [];
 
   List<Map<String, dynamic>> bodiesFor(String path) => requests
@@ -64,7 +66,8 @@ class FakeServer {
         expect(request.method, 'POST');
         switch (request.url.path) {
           case '/api/v1/auth/activation-code':
-            return jsonResponse({'message': 'Activation code sent'});
+            return activationCode?.call() ??
+                jsonResponse({'message': 'Activation code sent'});
           case '/api/v1/auth/register-app':
             return register(
                 Map<String, dynamic>.from(jsonDecode(request.body) as Map));
@@ -241,6 +244,64 @@ void main() {
       await tester.tap(find.text('Ok'));
       await tester.pumpAndSettle();
       expect(find.text('Finalizar'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    }, server.client);
+  });
+
+  testWidgets('register 429 shows the too-many-attempts dialog',
+      (tester) async {
+    final server = FakeServer((_) =>
+        jsonResponse({'error': 'too many attempts, try again later'}, 429));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(app());
+      await tester.pump();
+      await tester.pump();
+
+      await fillForm(tester);
+      await tester.tap(find.text('Finalizar'));
+      await settleDialog(tester);
+
+      expect(find.text('Atenção'), findsOneWidget);
+      expect(find.text(AppError.tooManyAttemptsMessage), findsOneWidget);
+      expect(find.text('Usuario não criado'), findsNothing);
+      expect(find.text(InfoWidget.invalidCodeMessage), findsNothing);
+
+      await tester.tap(find.text('Ok'));
+      await tester.pumpAndSettle();
+      expect(find.text('Finalizar'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    }, server.client);
+  });
+
+  testWidgets('activation-code 429 says to wait instead of resend',
+      (tester) async {
+    final server = FakeServer((_) => jsonResponse({}, 500),
+        activationCode: () =>
+            jsonResponse({'error': 'rate limit exceeded'}, 429));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(app());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text(AppError.tooManyAttemptsMessage), findsOneWidget);
+      expect(find.text('Não foi possível enviar o código. Tente reenviar.'),
+          findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    }, server.client);
+  });
+
+  testWidgets('other activation-code errors keep the resend notice',
+      (tester) async {
+    final server = FakeServer((_) => jsonResponse({}, 500),
+        activationCode: () => jsonResponse({'error': 'boom'}, 500));
+    await http.runWithClient(() async {
+      await tester.pumpWidget(app());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Não foi possível enviar o código. Tente reenviar.'),
+          findsOneWidget);
+      expect(find.text(AppError.tooManyAttemptsMessage), findsNothing);
       await tester.pumpWidget(const SizedBox());
     }, server.client);
   });

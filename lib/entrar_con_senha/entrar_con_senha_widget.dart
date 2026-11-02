@@ -15,6 +15,11 @@ class EntrarConSenhaWidget extends StatefulWidget {
   static String routeName = 'EntrarConSenha';
   static String routePath = '/entrarConSenha';
 
+  /// Shown when login answers 429 (e-mail locked after too many attempts).
+  static const String tooManyAttemptsMessage =
+      'Muitas tentativas de entrar com este e-mail. Aguarde alguns minutos '
+      'ou use "Esqueci minha senha".';
+
   @override
   State<EntrarConSenhaWidget> createState() => _EntrarConSenhaWidgetState();
 }
@@ -103,7 +108,9 @@ class _EntrarConSenhaWidgetState extends State<EntrarConSenhaWidget> {
           builder: (alertDialogContext) {
             return AlertDialog(
               title: const Text('Atenção'),
-              content: const Text('Senha invalida'),
+              content: Text(loginResult?.statusCode == 429
+                  ? EntrarConSenhaWidget.tooManyAttemptsMessage
+                  : 'Senha invalida'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(alertDialogContext),
