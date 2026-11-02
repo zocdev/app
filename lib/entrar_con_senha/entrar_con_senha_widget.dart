@@ -18,7 +18,7 @@ class EntrarConSenhaWidget extends StatefulWidget {
   /// Shown when login answers 429 (e-mail locked after too many attempts).
   static const String tooManyAttemptsMessage =
       'Muitas tentativas de entrar com este e-mail. Aguarde alguns minutos '
-      'ou use "Esqueci minha senha".';
+      'ou use "Esqueceu a senha?".';
 
   @override
   State<EntrarConSenhaWidget> createState() => _EntrarConSenhaWidgetState();
