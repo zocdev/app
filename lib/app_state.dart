@@ -65,6 +65,15 @@ class FFAppState extends ChangeNotifier {
       }
     });
     _safeInit(() {
+      final raw = _storage.getString('ff_presencePause');
+      if (raw != null && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          _presencePause = Map<String, dynamic>.from(decoded);
+        }
+      }
+    });
+    _safeInit(() {
       _rememberMe = _storage.getBool('ff_rememberMe') ?? _rememberMe;
     });
     _safeInit(() {
@@ -106,6 +115,19 @@ class FFAppState extends ChangeNotifier {
   bool get isPopupVisible => _isPopupVisible;
   set isPopupVisible(bool value) {
     _isPopupVisible = value;
+  }
+
+  /// Open pause as last seen from `/presence/*` (the `Pause` JSON), kept
+  /// across restarts so the app comes back paused before the API answers.
+  Map<String, dynamic>? _presencePause;
+  Map<String, dynamic>? get presencePause => _presencePause;
+  set presencePause(Map<String, dynamic>? value) {
+    _presencePause = value;
+    if (value == null) {
+      _storage.remove('ff_presencePause');
+    } else {
+      _storage.setString('ff_presencePause', jsonEncode(value));
+    }
   }
 
   bool _loginFailed = false;

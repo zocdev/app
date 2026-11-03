@@ -48,6 +48,28 @@ Future<void> restoreDesktopWindowAfterPopup() async {
   } catch (_) {}
 }
 
+/// Shows the window at popup size for the pause sheet, without pinning it
+/// on top (the user opened it).
+Future<void> showDesktopWindowForSheet() async {
+  if (!isDesktopWindow) return;
+  try {
+    await windowManager.show();
+    await windowManager.restore();
+    await _waitUntilRestoredOnMac();
+    await windowManager.setSize(kDesktopPopupWindowSize);
+    await windowManager.focus();
+  } catch (_) {}
+}
+
+/// Back to the home size and unpinned, keeping the window on screen.
+Future<void> resetDesktopWindowSize() async {
+  if (!isDesktopWindow) return;
+  try {
+    await windowManager.setAlwaysOnTop(false);
+    await windowManager.setSize(kDesktopWindowSize);
+  } catch (_) {}
+}
+
 /// Windows hides to the tray. macOS has no tray icon (see main.dart), so a
 /// hidden window could never be reopened: minimize to the Dock instead.
 Future<void> hideDesktopWindow() async {

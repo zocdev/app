@@ -724,6 +724,68 @@ class SubmitTimeRequestCall {
   }
 }
 
+/// Presence and pause of the signed-in worker (`/api/v1/presence/*`).
+/// Every call answers with the `Me` object; a 404 means the API predates
+/// the feature.
+class PresenceCall {
+  static Future<ApiCallResponse> me({String? token = ''}) =>
+      _call('PresenceMe', ApiCallType.GET, 'me', token: token);
+
+  static Future<ApiCallResponse> heartbeat({String? token = ''}) =>
+      _call('PresenceHeartbeat', ApiCallType.POST, 'heartbeat', token: token);
+
+  /// [minutes] 1..480, or null for "Até eu voltar". [reason] is optional.
+  static Future<ApiCallResponse> pause({
+    String? token = '',
+    int? minutes,
+    String? reason,
+  }) =>
+      _call('PresencePause', ApiCallType.POST, 'pause',
+          token: token, body: {'minutes': minutes, 'reason': reason});
+
+  static Future<ApiCallResponse> extend({
+    String? token = '',
+    required int minutes,
+  }) =>
+      _call('PresenceExtend', ApiCallType.POST, 'pause/extend',
+          token: token, body: {'minutes': minutes});
+
+  static Future<ApiCallResponse> resume({String? token = ''}) =>
+      _call('PresenceResume', ApiCallType.POST, 'resume', token: token);
+
+  /// Error code of a 400/409 answer (`invalid_minutes`, `no_open_pause`...).
+  static String? errorCode(ApiCallResponse response) =>
+      castToType<String>(getJsonField(response.jsonBody, r'''$.code'''));
+
+  static Future<ApiCallResponse> _call(
+    String name,
+    ApiCallType type,
+    String path, {
+    String? token,
+    Map<String, dynamic>? body,
+  }) =>
+      ApiManager.instance.makeApiCall(
+        callName: name,
+        apiUrl: '${getBaseApiUrl()}/api/v1/presence/$path',
+        callType: type,
+        headers: {
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          if (body != null) 'Content-Type': 'application/json',
+        },
+        params: {},
+        body: body == null ? null : json.encode(body),
+        bodyType: body == null ? BodyType.NONE : BodyType.JSON,
+        returnBody: true,
+        encodeBodyUtf8: false,
+        decodeUtf8: true,
+        cache: false,
+        isStreamingApi: false,
+        alwaysAllowBody: false,
+      );
+}
+
 class ApiPagingParams {
   int nextPageNumber = 0;
   int numItems = 0;

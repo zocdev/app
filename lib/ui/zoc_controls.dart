@@ -24,6 +24,7 @@ class ZocButton extends StatelessWidget {
     this.loading = false,
     this.expanded = false,
     this.small = false,
+    this.horizontalPadding,
   });
 
   final String label;
@@ -33,6 +34,9 @@ class ZocButton extends StatelessWidget {
   final bool loading;
   final bool expanded;
   final bool small;
+
+  /// Overrides the side padding (20, small: 12), e.g. three buttons in a row.
+  final double? horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -56,8 +60,8 @@ class ZocButton extends StatelessWidget {
       style: ButtonStyle(
         minimumSize: WidgetStatePropertyAll(Size(small ? 34 : 64, height)),
         fixedSize: WidgetStatePropertyAll(Size.fromHeight(height)),
-        padding: WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: small ? 12 : 20)),
+        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(
+            horizontal: horizontalPadding ?? (small ? 12 : 20))),
         shape: WidgetStatePropertyAll(StadiumBorder(
             side: border == null
                 ? BorderSide.none

@@ -11,6 +11,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'logout_model.dart';
 export 'logout_model.dart';
+import '/desktop/pause_controller.dart';
+import '/desktop/pause_return_dialog.dart';
+import '/desktop/pause_sheet.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
 import '/utils/time_tracking.dart';
@@ -47,11 +50,20 @@ class _LogoutWidgetState extends State<LogoutWidget>
   double _dailyGoalHours = GetWorkGoalCall.fallbackHours('today');
   bool _hoursLoading = false;
 
+  final PauseController _pauses = PauseController.instance;
+  late bool _wasPaused;
+  bool _returnDialogOpen = false;
+  bool _sheetOpen = false;
+  int _pollTicks = 0;
+
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => LogoutModel());
     WidgetsBinding.instance.addObserver(this);
+    _wasPaused = _pauses.isPaused;
+    _pauses.addListener(_onPauseChanged);
+    _pauses.onOpenSheetRequested = _openPauseSheet;
 
     _periodMinutes = _readMonitoringPeriod();
     _timerStartedAt = DateTime.now();
@@ -61,13 +73,17 @@ class _LogoutWidgetState extends State<LogoutWidget>
       _startPopupTimer(fireImmediately: true);
       _startUserPolling();
       unawaited(_loadWorkedHours());
+      unawaited(_startPresence());
     });
 
     var ticks = 0;
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       ticks++;
+      // Dart timers drift after the PC sleeps: compare the wall clock here.
+      _checkPauseExpiry();
       // Refresh every 30 seconds, then show every second of the last minute.
-      if (_remaining.inSeconds < 60 || ticks % 30 == 0) {
+      // A pause counts down every second.
+      if (_pauses.isPaused || _remaining.inSeconds < 60 || ticks % 30 == 0) {
         safeSetState(() {});
       }
     });
@@ -85,6 +101,10 @@ class _LogoutWidgetState extends State<LogoutWidget>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _pauses.removeListener(_onPauseChanged);
+    if (_pauses.onOpenSheetRequested == _openPauseSheet) {
+      _pauses.onOpenSheetRequested = null;
+    }
     _rescheduleDelayTimer?.cancel();
     _countdownTimer?.cancel();
     _model.dispose();
@@ -134,10 +154,100 @@ class _LogoutWidgetState extends State<LogoutWidget>
       callback: (_) {
         unawaited(_refreshUserSettings());
         unawaited(_loadWorkedHours());
+        // Presence heartbeat every 60 s (every other 30 s poll).
+        if (++_pollTicks % 2 == 0) unawaited(_pauses.heartbeat());
       },
       startImmediately: false,
     );
   }
+
+  /// Restores the pause from the server, then marks the user as seen.
+  Future<void> _startPresence() async {
+    await _pauses.refresh();
+    await _pauses.heartbeat();
+  }
+
+  void _onPauseChanged() {
+    final paused = _pauses.isPaused;
+    final resumed = _wasPaused && !paused;
+    _wasPaused = paused;
+    safeSetState(() {});
+    // The return dialog restarts the cycle itself once it has closed.
+    if (!resumed || _returnDialogOpen) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) => _recordAfterPause());
+  }
+
+  /// Charges run forward from each record: after a pause, record right away
+  /// (same path as login) instead of waiting a full period.
+  void _recordAfterPause() {
+    // A logout also drops the pause: no record then.
+    if (!mounted || _pauses.signedOut) return;
+    _startPopupTimer(fireImmediately: true);
+  }
+
+  void _checkPauseExpiry() {
+    if (!mounted || _returnDialogOpen || !_pauses.isExpired) return;
+    if (FFAppState().isPopupVisible) return;
+    // Only over the home screen (not over the logout confirmation, etc.).
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) return;
+    unawaited(_showReturnDialog());
+  }
+
+  Future<void> _showReturnDialog() async {
+    _returnDialogOpen = true;
+    PauseReturnChoice? choice;
+    try {
+      if (!isWeb) await prepareDesktopWindowForPopup();
+      if (!mounted) return;
+      choice = await showPauseReturnDialog(context, controller: _pauses);
+    } finally {
+      _returnDialogOpen = false;
+    }
+    if (!mounted) return;
+    switch (choice) {
+      case PauseReturnChoice.resumed:
+        _recordAfterPause();
+      case PauseReturnChoice.extended:
+        await restoreDesktopWindowAfterPopup();
+      case PauseReturnChoice.endDay:
+        await resetDesktopWindowSize();
+        if (mounted) {
+          await context.pushNamed(ConfirmaLogoutWidget.routeName);
+        }
+      case null:
+        break;
+    }
+  }
+
+  Future<void> _openPauseSheet() async {
+    if (!mounted || _sheetOpen || _pauses.isPaused) return;
+    if (FFAppState().isPopupVisible) return;
+    _sheetOpen = true;
+    try {
+      await showPauseSheet(context, controller: _pauses);
+    } finally {
+      _sheetOpen = false;
+    }
+  }
+
+  Future<void> _resumeNow() async {
+    final result = await _pauses.resume();
+    if (mounted && result == PauseActionResult.network) {
+      _showSnack('Sem conexão, tente de novo.');
+    } else if (mounted && result == PauseActionResult.failed) {
+      _showSnack('Não foi possível retomar. Tente de novo.');
+    }
+  }
+
+  Future<void> _extendPause() async {
+    final result = await _pauses.extend(15);
+    if (mounted && result == PauseActionResult.network) {
+      _showSnack('Sem conexão, tente de novo.');
+    }
+  }
+
+  void _showSnack(String message) => ScaffoldMessenger.maybeOf(context)
+      ?.showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _refreshUserSettings() async {
     if (!mounted || _refreshInFlight) return;
@@ -237,6 +347,8 @@ class _LogoutWidgetState extends State<LogoutWidget>
 
   Future<void> _runPopupCycle() async {
     if (!mounted) return;
+    // Paused: no popup, so no "ignored popup" entry either.
+    if (_pauses.isPaused) return;
     _nextPopupAt = DateTime.now().add(Duration(minutes: _periodMinutes));
     safeSetState(() {});
     if (FFAppState().isPopupVisible) return;
@@ -350,6 +462,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
 
   void _registerNow() {
     if (FFAppState().isPopupVisible || !isTimeTrackingEnabled()) return;
+    if (_pauses.isPaused) return;
     // The same capture, popup and desktop-window path as a scheduled record.
     // The API cuts the previous charge back to this record, so an early
     // project switch never charges the same minutes twice.
@@ -375,6 +488,12 @@ class _LogoutWidgetState extends State<LogoutWidget>
     final progress = goalProgress.ratio;
     final extraLap = (progress - 1).clamp(0.0, 1.0);
     final totalMinutes = ((_workedHours ?? 0) * 60).round();
+    final workedLabel = _workedHours == null
+        ? '—'
+        : '${totalMinutes ~/ 60}h ${(totalMinutes % 60).toString().padLeft(2, '0')}min';
+    final pause = _pauses.pause;
+    final canPause = enabled && _pauses.available && pause == null;
+    final mode = FFAppState().isRemote ? 'Trabalho remoto' : 'Presencial';
 
     return GestureDetector(
       onTap: () {
@@ -418,13 +537,20 @@ class _LogoutWidgetState extends State<LogoutWidget>
                               width: 8,
                               height: 8,
                               decoration: BoxDecoration(
-                                color: enabled ? ZocColors.ok : ZocColors.warn,
+                                color: pause != null
+                                    ? PauseColors.amber
+                                    : enabled
+                                        ? ZocColors.ok
+                                        : ZocColors.warn,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: enabled
-                                        ? ZocColors.okSoft
-                                        : ZocColors.warnSoft,
+                                    color: pause != null
+                                        ? PauseColors.amber
+                                            .withValues(alpha: .22)
+                                        : enabled
+                                            ? ZocColors.okSoft
+                                            : ZocColors.warnSoft,
                                     spreadRadius: 3,
                                   )
                                 ],
@@ -434,9 +560,11 @@ class _LogoutWidgetState extends State<LogoutWidget>
                           const SizedBox(width: 7),
                           Expanded(
                             child: Text(
-                              enabled
-                                  ? 'Em expediente · ${FFAppState().isRemote ? 'Trabalho remoto' : 'Presencial'}'
-                                  : 'Controle de tempo desativado pelo administrador',
+                              pause != null
+                                  ? 'Em pausa · $mode'
+                                  : enabled
+                                      ? 'Em expediente · $mode'
+                                      : 'Controle de tempo desativado pelo administrador',
                               style: ZocText.sub().copyWith(fontSize: 12.5),
                             ),
                           ),
@@ -448,136 +576,404 @@ class _LogoutWidgetState extends State<LogoutWidget>
               ],
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(ZocRadii.heroInner),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [ZocColors.brand, ZocColors.brandInk],
-                ),
+            if (pause != null) ...[
+              _PausedCard(pause: pause, controller: _pauses),
+              const SizedBox(height: 16),
+              _PausedDayRow(
+                workedLabel: workedLabel,
+                progress: progress,
+                goalLabel: expedienteGoalLabel(_dailyGoalHours),
+                onOpen: () => context.pushNamed(ExpedienteWidget.routeName),
               ),
-              child: Row(
+              const SizedBox(height: 16),
+              Row(
                 children: [
+                  if (pause.timed) ...[
+                    Expanded(
+                      child: ZocButton(
+                        '+15 min',
+                        expanded: true,
+                        variant: ZocButtonVariant.secondary,
+                        onPressed: _pauses.busy ? null : _extendPause,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Hoje',
-                            style: ZocText.caption(
-                                color:
-                                    ZocColors.surface.withValues(alpha: .8))),
-                        const SizedBox(height: 2),
-                        Text(
-                            _workedHours == null
-                                ? '—'
-                                : '${totalMinutes ~/ 60}h ${(totalMinutes % 60).toString().padLeft(2, '0')}min',
-                            style: ZocText.big(color: ZocColors.surface)),
-                        if (goalProgress.hasOvertime) ...[
-                          const SizedBox(height: 4),
-                          ZocOvertimePill(
-                              '+${expedienteHoursLabel(goalProgress.overtimeHours)} além da meta'),
-                        ],
-                      ],
+                    child: ZocButton(
+                      'Retomar agora',
+                      expanded: true,
+                      icon: Icons.play_arrow_rounded,
+                      loading: _pauses.busy,
+                      onPressed: _resumeNow,
                     ),
                   ),
-                  Semantics(
-                    label:
-                        '${(progress * 100).round()}% da meta de ${expedienteGoalLabel(_dailyGoalHours)}',
-                    child: SizedBox.square(
-                      dimension: 64,
-                      child: Stack(
-                        alignment: Alignment.center,
+                ],
+              ),
+            ] else ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(ZocRadii.heroInner),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [ZocColors.brand, ZocColors.brandInk],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Positioned.fill(
-                            child: CircularProgressIndicator(
-                              value: progress.clamp(0.0, 1.0),
-                              strokeWidth: 6,
-                              strokeCap: StrokeCap.round,
-                              backgroundColor:
-                                  ZocColors.surface.withValues(alpha: .2),
-                              color: ZocColors.surface,
-                            ),
-                          ),
-                          if (extraLap > 0)
-                            Positioned.fill(
-                              child: CircularProgressIndicator(
-                                value: extraLap,
-                                strokeWidth: 6,
-                                strokeCap: StrokeCap.round,
-                                backgroundColor: Colors.transparent,
-                                color: ZocColors.overtime,
-                              ),
-                            ),
-                          Text('${(progress * 100).round()}%',
-                              style: ZocText.label(color: ZocColors.surface)),
+                          Text('Hoje',
+                              style: ZocText.caption(
+                                  color:
+                                      ZocColors.surface.withValues(alpha: .8))),
+                          const SizedBox(height: 2),
+                          Text(workedLabel,
+                              style: ZocText.big(color: ZocColors.surface)),
+                          if (goalProgress.hasOvertime) ...[
+                            const SizedBox(height: 4),
+                            ZocOvertimePill(
+                                '+${expedienteHoursLabel(goalProgress.overtimeHours)} além da meta'),
+                          ],
                         ],
                       ),
                     ),
-                  ),
-                ],
+                    Semantics(
+                      label:
+                          '${(progress * 100).round()}% da meta de ${expedienteGoalLabel(_dailyGoalHours)}',
+                      child: SizedBox.square(
+                        dimension: 64,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned.fill(
+                              child: CircularProgressIndicator(
+                                value: progress.clamp(0.0, 1.0),
+                                strokeWidth: 6,
+                                strokeCap: StrokeCap.round,
+                                backgroundColor:
+                                    ZocColors.surface.withValues(alpha: .2),
+                                color: ZocColors.surface,
+                              ),
+                            ),
+                            if (extraLap > 0)
+                              Positioned.fill(
+                                child: CircularProgressIndicator(
+                                  value: extraLap,
+                                  strokeWidth: 6,
+                                  strokeCap: StrokeCap.round,
+                                  backgroundColor: Colors.transparent,
+                                  color: ZocColors.overtime,
+                                ),
+                              ),
+                            Text('${(progress * 100).round()}%',
+                                style: ZocText.label(color: ZocColors.surface)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: ZocColors.surface2,
-                borderRadius: BorderRadius.circular(ZocRadii.input),
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: ZocColors.surface2,
+                  borderRadius: BorderRadius.circular(ZocRadii.input),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined,
+                        size: 15, color: ZocColors.muted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text.rich(TextSpan(
+                        style: ZocText.sub().copyWith(fontSize: 13),
+                        children: enabled
+                            ? [
+                                const TextSpan(text: 'Próximo registro em  '),
+                                TextSpan(
+                                    text: formatPopupCountdown(_remaining),
+                                    style: ZocText.strong()),
+                              ]
+                            : [
+                                const TextSpan(
+                                    text: 'Controle de tempo desativado')
+                              ],
+                      )),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
+              const SizedBox(height: 16),
+              Row(
                 children: [
-                  const Icon(Icons.timer_outlined,
-                      size: 15, color: ZocColors.muted),
-                  const SizedBox(width: 8),
                   Expanded(
-                    child: Text.rich(TextSpan(
-                      style: ZocText.sub().copyWith(fontSize: 13),
-                      children: enabled
-                          ? [
-                              const TextSpan(text: 'Próximo registro em  '),
-                              TextSpan(
-                                  text: formatPopupCountdown(_remaining),
-                                  style: ZocText.strong()),
-                            ]
-                          : [
-                              const TextSpan(
-                                  text: 'Registros automáticos pausados')
-                            ],
-                    )),
+                    child: ZocButton(
+                      'Ver registros',
+                      expanded: true,
+                      variant: ZocButtonVariant.secondary,
+                      horizontalPadding: canPause ? 14 : null,
+                      icon: Icons.bar_chart_rounded,
+                      onPressed: () =>
+                          context.pushNamed(ExpedienteWidget.routeName),
+                    ),
+                  ),
+                  if (canPause) ...[
+                    const SizedBox(width: 10),
+                    ZocButton(
+                      'Pausar',
+                      variant: ZocButtonVariant.secondary,
+                      horizontalPadding: 14,
+                      icon: Icons.pause_rounded,
+                      onPressed:
+                          FFAppState().isPopupVisible ? null : _openPauseSheet,
+                    ),
+                  ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ZocButton(
+                      'Registrar agora',
+                      expanded: true,
+                      icon: Icons.add_rounded,
+                      horizontalPadding: canPause ? 14 : null,
+                      onPressed: enabled && !FFAppState().isPopupVisible
+                          ? _registerNow
+                          : null,
+                    ),
                   ),
                 ],
               ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Amber card that replaces the "Hoje" hero while paused (mockups 04/05).
+class _PausedCard extends StatelessWidget {
+  const _PausedCard({required this.pause, required this.controller});
+
+  final PresencePause pause;
+  final PauseController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final reason = pause.reasonLabel;
+    final String top;
+    final String big;
+    if (pause.timed) {
+      top = reason == null ? 'Em pausa' : 'Em pausa · $reason';
+      final remaining = controller.remaining!;
+      final over = -remaining.inMinutes;
+      big = !remaining.isNegative
+          ? pauseRemainingLabel(remaining)
+          : over < 1
+              ? 'pausa terminou'
+              : 'excedida há ${pauseDurationLabel(Duration(minutes: over))}';
+    } else {
+      top = 'Em pausa desde ${pauseClock(pause.startedAt)}'
+          '${reason == null ? '' : ' · $reason'}';
+      final elapsed = controller.elapsed;
+      big = elapsed.inMinutes < 1
+          ? 'há menos de 1 min'
+          : 'há ${pauseDurationLabel(elapsed)}';
+    }
+    final planned = pause.planned?.inSeconds ?? 0;
+    final progress =
+        planned <= 0 ? 0.0 : controller.elapsed.inSeconds / planned;
+    final subStyle =
+        ZocText.caption(color: PauseColors.ink, weight: FontWeight.w500)
+            .copyWith(fontSize: 12.5);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(ZocRadii.heroInner),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(ZocRadii.heroInner),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [PauseColors.surface, PauseColors.soft],
+          ),
+          border: Border.all(color: PauseColors.amber.withValues(alpha: .25)),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -36,
+              top: -46,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: PauseColors.amber.withValues(alpha: .10),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ZocButton(
-                    'Ver registros',
-                    expanded: true,
-                    variant: ZocButtonVariant.secondary,
-                    icon: Icons.bar_chart_rounded,
-                    onPressed: () =>
-                        context.pushNamed(ExpedienteWidget.routeName),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const PauseIconBadge(size: 26, solid: true),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(top,
+                            style:
+                                subStyle.copyWith(fontWeight: FontWeight.w600)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ZocButton(
-                    'Registrar agora',
-                    expanded: true,
-                    icon: Icons.add_rounded,
-                    onPressed: enabled && !FFAppState().isPopupVisible
-                        ? _registerNow
-                        : null,
+                  const SizedBox(height: 6),
+                  Text(big, style: ZocText.big(color: PauseColors.ink2)),
+                  if (pause.timed) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(ZocRadii.pill),
+                      child: Container(
+                        height: 6,
+                        color: PauseColors.amber.withValues(alpha: .18),
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: progress.clamp(0.0, 1.0),
+                          heightFactor: 1,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: PauseColors.amber,
+                              borderRadius:
+                                  BorderRadius.circular(ZocRadii.pill),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                          pause.timed
+                              ? Icons.schedule_rounded
+                              : Icons.all_inclusive_rounded,
+                          size: 14,
+                          color: PauseColors.ink),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                            pause.timed
+                                ? 'Volta prevista às ${pauseClock(pause.plannedEndAt!)}'
+                                : 'Sem horário de volta',
+                            style: subStyle),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Muted "Hoje" row shown while paused: the day does not grow.
+class _PausedDayRow extends StatelessWidget {
+  const _PausedDayRow({
+    required this.workedLabel,
+    required this.progress,
+    required this.goalLabel,
+    required this.onOpen,
+  });
+
+  final String workedLabel;
+  final double progress;
+  final String goalLabel;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final small =
+        ZocText.caption(color: ZocColors.faint, weight: FontWeight.w500)
+            .copyWith(fontSize: 11);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: ZocColors.surface2,
+        borderRadius: BorderRadius.circular(ZocRadii.input),
+      ),
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Hoje', style: small),
+              const SizedBox(height: 1),
+              Text(workedLabel,
+                  style: ZocText.h3(color: ZocColors.muted)
+                      .copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(ZocRadii.pill),
+                  child: Container(
+                    height: 5,
+                    color: const Color(0xFFE2E8F0),
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: progress.clamp(0.0, 1.0),
+                      heightFactor: 1,
+                      child: const ColoredBox(color: ZocColors.faint),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${(progress * 100).round()}% da meta de $goalLabel · a pausa não conta',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: small.copyWith(fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          InkWell(
+            onTap: onOpen,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bar_chart_rounded,
+                      size: 15, color: ZocColors.brand),
+                  const SizedBox(width: 4),
+                  Text('Ver registros',
+                      style: ZocText.link().copyWith(fontSize: 12)),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

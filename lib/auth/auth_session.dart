@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_config.dart';
 import '/backend/api_requests/api_manager.dart';
+import '/desktop/pause_controller.dart';
 
 class AuthSession {
   static Future<bool>? _refreshFuture;
@@ -125,6 +126,8 @@ class AuthSession {
 
     await authManager.signOut();
     ApiManager.syncAccessToken(null);
+    // The API closes the open pause on /auth/logout.
+    PauseController.instance.clear();
   }
 
   static Future<void> handleUnauthorized() async {
