@@ -174,14 +174,22 @@ Write-Log "Process exited. Beginning file copy from \$source to \$dest"
 \$roboResult = robocopy "\$source" "\$dest" /E /PURGE /R:10 /W:2 /NFL /NDL /NJH /NJS /NC /NS
 \$exitCode = \$LASTEXITCODE
 
-# Robocopy exit codes < 8 are success (0-7 = OK, 8+ = error)
-if (\$exitCode -ge 8) {
-  Write-Log "Robocopy failed with exit code \$exitCode. Trying Copy-Item fallback..."
+# Robocopy exit codes < 8 are success (0-7 = OK, 8+ = error), but it also
+# returns 0 when it cannot open the destination folder (access denied), so
+# check that zoc.exe really was replaced.
+function Test-Copied {
+  \$a = (Get-FileHash (Join-Path \$source "zoc.exe") -ErrorAction SilentlyContinue).Hash
+  \$b = (Get-FileHash (Join-Path \$dest "zoc.exe") -ErrorAction SilentlyContinue).Hash
+  return (\$a -and \$a -eq \$b)
+}
+if (\$exitCode -ge 8 -or -not (Test-Copied)) {
+  Write-Log "Robocopy did not copy (exit code \$exitCode). Trying Copy-Item fallback..."
   \$retries = 5
   while (\$retries -gt 0) {
     try {
       Copy-Item -Path (Join-Path \$source "*") `
         -Destination \$dest -Recurse -Force -ErrorAction Stop
+      if (-not (Test-Copied)) { throw "zoc.exe was not replaced" }
       Write-Log "Copy-Item fallback succeeded."
       \$exitCode = 0
       break
@@ -189,8 +197,7 @@ if (\$exitCode -ge 8) {
       \$retries--
       Write-Log "Copy-Item attempt failed: \$_. Retries left: \$retries"
       if (\$retries -eq 0) {
-        Write-Log "All copy attempts failed. Aborting."
-        exit 1
+        Write-Log "All copy attempts failed. Reopening the current version."
       }
       Start-Sleep -Seconds 2
     }
@@ -204,7 +211,12 @@ if (\$already) {
   Write-Log "Zoc already running (PID \$(\$already.Id)). Skipping extra launch."
 } else {
   Write-Log "Launching updated app: \$exe"
+  \$isAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+      [Security.Principal.WindowsBuiltInRole]::Administrator)
   try {
+    # Elevated: start Zoc through the shell so it runs as the normal user.
+    if (\$isAdmin) { throw "elevated" }
     \$proc = Start-Process -FilePath \$exe `
       -WorkingDirectory \$dest -WindowStyle Normal -PassThru
     Write-Log "App launched with PID \$(\$proc.Id)."
@@ -221,16 +233,17 @@ if (\$already) {
 Write-Log "Updater finished."
 ''';
 
-    // The relay batch file uses "start /b" which creates the PowerShell
-    // process in a new process group, detached from the Flutter job object.
-    // Without this, Windows kills PowerShell when the Flutter parent exits.
-    final batRelay = '''
-@echo off
-start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "${psScriptPath.replaceAll('/', '\\')}"
-exit /b 0
-''';
+    final batRelay = _relayBat(psScriptPath);
     await File(psScriptPath).writeAsString(psScript);
     await File(batRelayPath).writeAsString(batRelay);
+
+    if (!await _canWrite(Directory(installDir))) {
+      // Per-machine install (Program Files): copying needs admin rights.
+      // Ask for them (UAC) and run the same script elevated. If the user
+      // declines, Zoc keeps running and shows the error.
+      await _runElevated(psScriptPath, workDir);
+      exit(0);
+    }
 
     // Launch via cmd.exe — this creates the PowerShell process outside the
     // Flutter job object so it won't be killed when Flutter exits.
@@ -288,6 +301,85 @@ open "\$DEST"
 
     exit(0);
   }
+
+  static Future<bool> _canWrite(Directory dir) async {
+    final probe = File(
+      '${dir.path}${Platform.pathSeparator}.zoc_update_probe_$pid',
+    );
+    try {
+      await probe.writeAsString('ok', flush: true);
+      await probe.delete();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _runElevated(
+    String psScriptPath,
+    Directory workDir,
+  ) async {
+    final sep = Platform.pathSeparator;
+    final launcherPath = '${workDir.path}${sep}elevate_updater.ps1';
+    final relayPath = '${workDir.path}${sep}elevate_updater.bat';
+    final result = File('${workDir.path}${sep}elevate_result.txt');
+    // Start-Process -Verb RunAs shows the UAC prompt and throws when the
+    // user declines. The elevated PowerShell is started by Windows, so it
+    // is outside any job object of this process. The answer comes back
+    // through a file: PowerShell started without a console prints nothing.
+    await File(launcherPath).writeAsString('''
+\$result = Join-Path \$PSScriptRoot "elevate_result.txt"
+try {
+  \$script = Join-Path \$PSScriptRoot "apply_update.ps1"
+  Start-Process -FilePath powershell.exe -Verb RunAs -WindowStyle Hidden `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass",
+      "-NonInteractive", "-WindowStyle", "Hidden", "-File", "`"\$script`"") `
+    -ErrorAction Stop
+  Set-Content -Path \$result -Value "elevated"
+} catch {
+  Set-Content -Path \$result -Value "denied: \$(\$_.Exception.Message)"
+}
+''');
+    await File(relayPath).writeAsString(_relayBat(launcherPath));
+    await Process.start(
+      'cmd.exe',
+      ['/c', relayPath],
+      workingDirectory: workDir.path,
+      mode: ProcessStartMode.detached,
+    );
+
+    // The UAC prompt waits for the user; give up after 10 minutes.
+    final deadline = DateTime.now().add(const Duration(minutes: 10));
+    var answer = '';
+    while (DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!await result.exists()) continue;
+      try {
+        // Windows PowerShell writes the system ANSI code page, not UTF-8.
+        answer = const Utf8Decoder(allowMalformed: true)
+            .convert(await result.readAsBytes())
+            .trim();
+      } on FileSystemException {
+        continue; // PowerShell is still writing it.
+      }
+      if (answer.isNotEmpty) break;
+    }
+    if (!answer.startsWith('elevated')) {
+      if (kDebugMode) print('Elevation failed: $answer');
+      throw Exception(
+        'é preciso permitir a atualização como administrador. '
+        'Tente de novo e clique em "Sim".',
+      );
+    }
+  }
+
+  /// cmd relay: "start /b" puts PowerShell in a new process group, outside
+  /// the Flutter job object, so it survives when this process exits.
+  static String _relayBat(String psScriptPath) => '''
+@echo off
+start "" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File "${psScriptPath.replaceAll('/', '\\')}"
+exit /b 0
+''';
 
   static Directory? _findMacAppBundle(Directory root) {
     try {
