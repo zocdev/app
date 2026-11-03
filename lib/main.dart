@@ -97,14 +97,17 @@ void main() async {
         iconPath: "assets/app_icon.ico",
       );
 
-      await _PauseTray(systemTray).attach();
+      final pauseTray = _PauseTray(systemTray);
+      await pauseTray.attach();
 
       systemTray.registerSystemTrayEventHandler((eventName) {
         if (eventName == kSystemTrayEventClick) {
           windowManager.show();
           windowManager.focus();
         } else if (eventName == kSystemTrayEventRightClick) {
-          systemTray.popUpContextMenu();
+          // Some inputs of the menu (e.g. "Controle de tempo" turned on by the
+          // admin) change without notifying: rebuild it right before it opens.
+          pauseTray._sync().whenComplete(systemTray.popUpContextMenu);
         }
       });
     } catch (e) {
