@@ -348,6 +348,15 @@ class _LogoutWidgetState extends State<LogoutWidget>
     }
   }
 
+  void _registerNow() {
+    if (FFAppState().isPopupVisible || !isTimeTrackingEnabled()) return;
+    // The same capture, popup and desktop-window path as a scheduled record.
+    // The API cuts the previous charge back to this record, so an early
+    // project switch never charges the same minutes twice.
+    unawaited(_runPopupCycle());
+    _startPopupTimer(fireImmediately: false);
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
@@ -556,14 +565,13 @@ class _LogoutWidgetState extends State<LogoutWidget>
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  // Off until the API ends the previous charge at an early record: today a
-                  // record before the interval is over leaves the previous project charged
-                  // for the whole interval, so switching projects early charges both.
                   child: ZocButton(
                     'Registrar agora',
                     expanded: true,
                     icon: Icons.add_rounded,
-                    onPressed: null,
+                    onPressed: enabled && !FFAppState().isPopupVisible
+                        ? _registerNow
+                        : null,
                   ),
                 ),
               ],

@@ -158,7 +158,7 @@ void main() {
     });
   });
 
-  testWidgets('Registrar agora cannot create an early monitoring record',
+  testWidgets('Registrar agora uses the popup path and restarts its interval',
       (tester) async {
     tester.view.physicalSize = const Size(510, 600);
     tester.view.devicePixelRatio = 1;
@@ -173,21 +173,25 @@ void main() {
       expect(find.text('3h 30min'), findsOneWidget);
       expect(find.text('44%'), findsOneWidget);
 
-      final button = tester
-          .widget<ZocButton>(find.widgetWithText(ZocButton, 'Registrar agora'));
-      expect(button.onPressed, isNull);
       await tester.tap(find.text('Registrar agora'));
-      await settle(tester);
-      expect(entries, isEmpty);
-      expect(find.byType(PopupDialogWidget), findsNothing);
-
-      await tester.pump(const Duration(seconds: 31));
       await tester.pump(const Duration(seconds: 1));
       await settle(tester);
       expect(find.byType(PopupDialogWidget), findsOneWidget);
       await tester.tap(find.text('Ignorar'));
       await settle(tester);
       expect(entries.single['ignored_popup'], isTrue);
+      expect(find.byType(PopupDialogWidget), findsNothing);
+
+      // The old timer would fire at 60s from mount. The new one waits a full
+      // minute from the manual record, which occurred at roughly 30s.
+      await tester.pump(const Duration(seconds: 31));
+      expect(find.byType(PopupDialogWidget), findsNothing);
+      await tester.pump(const Duration(seconds: 29));
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      expect(find.byType(PopupDialogWidget), findsOneWidget);
+      await tester.tap(find.text('Ignorar'));
+      await settle(tester);
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     }, () => client);
