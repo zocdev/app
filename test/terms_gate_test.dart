@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,20 @@ import 'package:http/testing.dart';
 import 'package:zoc/auth/terms_gate.dart';
 import 'package:zoc/backend/api_requests/api_manager.dart';
 import 'package:zoc/flutter_flow/flutter_flow_util.dart';
+
+/// Font anti-aliasing differs by a few pixels between OSes (the golden is shared by Windows and macOS
+/// machines), so allow up to 0.1% of the pixels to differ.
+class _TolerantComparator extends LocalFileComparator {
+  _TolerantComparator(super.testFile, {this.tolerance = 0.001});
+  final double tolerance;
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+        imageBytes, await getGoldenBytes(golden));
+    return result.passed || result.diffPercent <= tolerance;
+  }
+}
 
 Map<String, dynamic> status(
         {bool pending = true, String version = '2026-10'}) =>
@@ -40,6 +55,7 @@ Widget app({Widget? child}) => MaterialApp(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  goldenFileComparator = _TolerantComparator((goldenFileComparator as LocalFileComparator).basedir.resolve('terms_gate_test.dart'));
   late Directory storageDir;
   setUpAll(() async {
     final font = FontLoader('Roboto')
