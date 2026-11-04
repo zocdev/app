@@ -9,7 +9,7 @@
 ///   [ZocDisclaimer].
 /// - Controls: [ZocButton], [ZocTextField], [zocInputDecoration],
 ///   [ZocInputBorder], [ZocSelect], [ZocToggleRow], [ZocSwitch],
-///   [ZocCheckRow], [ZocSegmented].
+///   [ZocCheckRow], [ZocRadioRow], [ZocSegmented].
 /// - Display: [ZocBadge], [ZocHeroIcon], [ZocProgressBar], [ZocListItem],
 ///   [ZocNotice].
 /// - Theme: [zocThemeData] (used by `main.dart`).

@@ -264,10 +264,11 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   }
 
   void _selectActivities(List<String> values) {
+    final singleValue = values.isNotEmpty ? [values.last] : <String>[];
     _model.dropdownatividadesValueController ??=
         FormListFieldController<String>(null);
-    _model.dropdownatividadesValueController!.value = values;
-    safeSetState(() => _model.dropdownatividadesValue = values);
+    _model.dropdownatividadesValueController!.value = singleValue;
+    safeSetState(() => _model.dropdownatividadesValue = singleValue);
   }
 
   Future<void> _showActivities() async {
@@ -281,22 +282,23 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     await showZocModal(context,
         builder: (context) => StatefulBuilder(
               builder: (context, update) => ZocModal(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text('Atividades', style: ZocText.h2()),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       ZocTextField(
                         hintText: 'Buscar atividades...',
                         icon: Icons.search_rounded,
                         onChanged: (value) =>
                             update(() => search = value.toLowerCase()),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 240),
+                        constraints: const BoxConstraints(maxHeight: 340),
                         child: SingleChildScrollView(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -313,20 +315,15 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                   task.name.toLowerCase().contains(search)))
                                 Padding(
                                   padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  child: ZocCheckRow(
+                                      const EdgeInsets.symmetric(vertical: 1.5),
+                                  child: ZocRadioRow(
                                     label: task.name,
                                     value: _model.dropdownatividadesValue
                                             ?.contains(task.id) ??
                                         false,
                                     onChanged: (selected) {
-                                      final values = [
-                                        ...?_model.dropdownatividadesValue
-                                      ];
-                                      selected
-                                          ? values.add(task.id)
-                                          : values.remove(task.id);
-                                      _selectActivities(values);
+                                      _selectActivities(
+                                          selected ? [task.id] : []);
                                       update(() {});
                                     },
                                   ),
@@ -355,7 +352,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Atividades', style: ZocText.label()),
+        Text('Atividade', style: ZocText.label()),
         const SizedBox(height: 6),
         Material(
           color: ZocColors.inputFill,
@@ -395,14 +392,12 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 MaterialTapTargetSize.shrinkWrap,
                             deleteIcon: const Icon(Icons.close_rounded,
                                 size: 13, color: ZocColors.brandInk),
-                            onDeleted: () =>
-                                _selectActivities([...selected]..remove(id)),
+                            onDeleted: () => _selectActivities([]),
                           ),
-                        Text(
-                            selected.isEmpty
-                                ? 'Escolha as atividades'
-                                : 'Adicionar...',
-                            style: ZocText.body(color: ZocColors.faint)),
+                        if (selected.isEmpty)
+                          Text(
+                              'Escolha a atividade',
+                              style: ZocText.body(color: ZocColors.faint)),
                       ],
                     ),
                   ),

@@ -274,16 +274,16 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('Folha de pagamento').last);
       await settle(tester);
-      await tester.tap(find.text('Escolha as atividades'));
+      await tester.tap(find.text('Escolha a atividade'));
       await settle(tester);
-      await tester.tap(find.text('Conferir lançamentos'));
       await tester.tap(find.text('Ajustes'));
+      // Single select: selecting another activity deselects the previous one.
+      await tester.tap(find.text('Conferir lançamentos'));
       await tester.tap(find.text('Concluir'));
       await settle(tester);
-      expect(find.byType(InputChip), findsNWidgets(2));
-      await tester.tap(find.descendant(
-          of: find.byType(InputChip).last,
-          matching: find.byIcon(Icons.close_rounded)));
+      expect(find.byType(InputChip), findsOneWidget);
+      expect(find.text('Conferir lançamentos'), findsOneWidget);
+      expect(find.text('Ajustes'), findsNothing);
       await tester.enterText(
           find.byType(TextFormField), 'Conferência de outubro');
       await tester.tap(find.text('Trabalho remoto'));
@@ -328,7 +328,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('Folha de pagamento').last);
       await settle(tester);
-      await tester.tap(find.text('Escolha as atividades'));
+      await tester.tap(find.text('Escolha a atividade'));
       await settle(tester);
       expect(find.text('Concluir'), findsOneWidget);
       await tester.pump(const Duration(seconds: 8));

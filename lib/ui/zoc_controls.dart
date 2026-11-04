@@ -649,6 +649,64 @@ class ZocCheckRow extends StatelessWidget {
       );
 }
 
+/// Radio button + label for single-selection lists.
+/// Disabled when [onChanged] is null. Pass [label] or [child].
+class ZocRadioRow extends StatelessWidget {
+  const ZocRadioRow({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.label,
+    this.child,
+  }) : assert(label != null || child != null);
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final String? label;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onChanged == null ? null : () => onChanged!(!value),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: ZocColors.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: value ? ZocColors.brand : ZocColors.control,
+                    width: 1.5,
+                  ),
+                ),
+                child: value
+                    ? Container(
+                        width: 9,
+                        height: 9,
+                        decoration: const BoxDecoration(
+                          color: ZocColors.brand,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: child ??
+                    Text(label!, style: ZocText.body().copyWith(fontSize: 13)),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
 /// Pill segmented control (e.g. Dia / Semana / Mês).
 class ZocSegmented extends StatelessWidget {
   const ZocSegmented({
