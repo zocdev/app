@@ -233,6 +233,14 @@ class ApiManager {
   static Future<bool> Function()? _tokenRefresher;
   static Future<void> Function()? _onUnauthorized;
 
+  static String? _bearer(Map<String, dynamic> headers) {
+    final value = headers[HttpHeaders.authorizationHeader] ??
+        headers['Authorization'];
+    if (value is! String || !value.startsWith('Bearer ')) return null;
+    final token = value.substring('Bearer '.length);
+    return token.isEmpty ? null : token;
+  }
+
   static void syncAccessToken(String? token) {
     _accessToken = token;
   }
@@ -543,11 +551,20 @@ class ApiManager {
         _tokenRefresher != null &&
         !apiUrl.contains('/auth/login') &&
         !apiUrl.contains('/auth/refresh')) {
-      final refreshed = await _tokenRefresher!.call();
+      // Another call refreshed the token while this one was in flight:
+      // retry with the new token instead of rotating it again.
+      final sentToken = _bearer(requestHeaders);
+      final currentToken = _accessToken ?? _accessTokenGetter?.call();
+      final tokenChanged = sentToken != null &&
+          currentToken != null &&
+          currentToken.isNotEmpty &&
+          currentToken != sentToken;
+      final refreshed = tokenChanged || await _tokenRefresher!.call();
       if (refreshed) {
         final retryHeaders = Map<String, dynamic>.from(headers);
         final retryToken = _accessToken ?? _accessTokenGetter?.call();
         if (retryToken != null && retryToken.isNotEmpty) {
+          retryHeaders.remove('Authorization');
           retryHeaders[HttpHeaders.authorizationHeader] = 'Bearer $retryToken';
         }
 

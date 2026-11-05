@@ -62,6 +62,7 @@ void main() async {
       onUnauthorized: AuthSession.handleUnauthorized,
     );
     ApiManager.syncAccessToken(authManager.authenticationToken);
+    AuthSession.startAutoRefresh();
   } catch (e, stack) {
     if (kDebugMode) {
       print('Startup initialization error: $e');
@@ -214,8 +215,10 @@ class _MyAppState extends State<MyApp> with WindowListener {
             authManager.authenticationToken!.isNotEmpty;
 
         if (hasStoredSession) {
-          final refreshed = await AuthSession.refreshAccessToken();
-          if (!refreshed) {
+          // Offline at startup keeps the stored session: only a refused
+          // refresh token ends it.
+          final outcome = await AuthSession.refresh();
+          if (outcome == RefreshOutcome.rejected) {
             await authManager.signOut();
             ApiManager.syncAccessToken(null);
           }

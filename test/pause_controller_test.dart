@@ -156,6 +156,51 @@ void main() {
     expect(requests, hasLength(1));
   });
 
+  test('after a 404 heartbeats try again every 10 minutes', () async {
+    handler = (_) async => json({'message': 'Not Found'}, 404);
+    final c = controller();
+    await withApi(() async {
+      await c.heartbeat();
+      expect(c.off, isTrue);
+      now = t0.add(const Duration(minutes: 9));
+      await c.heartbeat();
+      expect(requests, hasLength(1));
+
+      handler = (_) async => json(me());
+      now = t0.add(const Duration(minutes: 10));
+      await c.heartbeat();
+    });
+    expect(requests, hasLength(2));
+    expect(c.off, isFalse);
+    expect(c.available, isTrue);
+  });
+
+  test('an HTML 404 (proxy, captive portal) is a network error', () async {
+    cache = pauseJson();
+    final c = controller()..restoreFromCache();
+    handler = (_) async => http.Response('<html>Not Found</html>', 404,
+        headers: {'content-type': 'text/html'});
+    await withApi(() async {
+      await c.heartbeat();
+      expect(await c.resume(), PauseActionResult.network);
+    });
+    expect(c.off, isFalse);
+    expect(c.isPaused, isTrue);
+    expect(cache, isNotNull);
+  });
+
+  test('logout turns presence back on for the next login', () async {
+    handler = (_) async => json({'message': 'Not Found'}, 404);
+    final c = controller();
+    await withApi(() => c.heartbeat());
+    expect(c.off, isTrue);
+    c.clear();
+    expect(c.off, isFalse);
+    handler = (_) async => json(me());
+    await withApi(() => c.heartbeat());
+    expect(requests, hasLength(2));
+  });
+
   test('network errors keep the current state', () async {
     handler = (_) async => throw http.ClientException('offline');
     final c = controller();

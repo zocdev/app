@@ -17,6 +17,10 @@ const Map<String, String> kPauseReasons = {
 /// Longest pause the API accepts (and the custom stepper allows).
 const int kMaxPauseMinutes = 480;
 
+/// After a 404 turned presence off, heartbeats try again after this long
+/// (the API may have been updated, or the 404 came from the network).
+const Duration kPresenceOffRetry = Duration(minutes: 10);
+
 /// The server treats an open pause as ended 12 h after it started.
 const Duration kPauseMaxAge = Duration(hours: 12);
 
@@ -110,6 +114,7 @@ class PauseController extends ChangeNotifier {
   PresencePause? _pause;
   bool _available = false;
   bool _off = false;
+  DateTime? _offAt;
   Duration _skew = Duration.zero;
   int _sent = 0;
   int _applied = 0;
@@ -164,9 +169,16 @@ class PauseController extends ChangeNotifier {
   /// `GET /presence/me`: restores the server state.
   Future<PauseActionResult> refresh() => _send(() => PresenceCall.me());
 
-  /// `POST /presence/heartbeat` (every 60 s). No-op once the feature is off.
+  /// `POST /presence/heartbeat` (every 60 s). While the feature is off it
+  /// only tries again every [kPresenceOffRetry].
   Future<void> heartbeat() async {
-    if (_off) return;
+    if (_off) {
+      final offAt = _offAt;
+      if (offAt != null && _clock().difference(offAt) < kPresenceOffRetry) {
+        return;
+      }
+      _off = false;
+    }
     await _send(() => PresenceCall.heartbeat());
   }
 
@@ -195,6 +207,8 @@ class PauseController extends ChangeNotifier {
     _writeCache(null);
     _pause = null;
     _available = false;
+    _off = false;
+    _offAt = null;
     _signedOut = true;
     notifyListeners();
   }
@@ -222,13 +236,18 @@ class PauseController extends ChangeNotifier {
     } catch (_) {
       return PauseActionResult.network;
     }
-    if (response.statusCode == 404) {
+    // Only the API's own JSON 404 means "no presence routes": an HTML 404
+    // from a proxy or captive portal is a network problem.
+    if (response.statusCode == 404 && response.jsonBody is Map) {
       _off = true;
+      _offAt = _clock();
       _setPause(null);
       notifyListeners();
       return PauseActionResult.unavailable;
     }
-    if (response.statusCode <= 0) return PauseActionResult.network;
+    if (response.statusCode <= 0 || response.statusCode == 404) {
+      return PauseActionResult.network;
+    }
     if (!response.succeeded) return PauseActionResult.failed;
     // An older request that answers late must not undo a newer one.
     if (seq < _applied) return PauseActionResult.ok;
