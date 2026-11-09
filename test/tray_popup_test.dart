@@ -145,7 +145,9 @@ void main() {
       }
       if (path.contains('clients')) {
         return response([
-          {'id': 'c1', 'name': 'Acme Ltda'}
+          {'id': 'c1', 'name': 'Acme Ltda'},
+          // No project of this client is assigned to the member.
+          {'id': 'c2', 'name': 'Seres Baum'},
         ]);
       }
       if (path.contains('tasks/app/project')) {
@@ -340,6 +342,48 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
     }, () => client);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('popup lists only clients with a project assigned to the member',
+      (tester) async {
+    tester.view.physicalSize = const Size(510, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var assigned = <Map<String, dynamic>>[];
+    final scoped = MockClient((request) async {
+      if (request.url.path.contains('assignments/projects')) {
+        return response(assigned);
+      }
+      return client.send(request).then(http.Response.fromStream);
+    });
+    await http.runWithClient(() async {
+      await tester.pumpWidget(host(Builder(
+          builder: (context) => TextButton(
+                onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const PopupDialogWidget()),
+                child: const Text('open'),
+              ))));
+      await tester.tap(find.text('open'));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('popup-no-projects')), findsOneWidget);
+
+      // The admin assigns the member; refreshing brings the client in.
+      assigned = [
+        {'id': 'p1', 'name': 'Folha de pagamento', 'client_id': 'c1'},
+      ];
+      await tester.tap(find.byTooltip('Atualizar clientes e projetos'));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('popup-no-projects')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('popup-client')));
+      await settle(tester);
+      expect(find.text('Acme Ltda'), findsWidgets);
+      expect(find.text('Seres Baum'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    }, () => scoped);
     expect(tester.takeException(), isNull);
   });
 }

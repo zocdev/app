@@ -40,6 +40,8 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   Uint8List? _screenshotBytes;
   bool _submitted = false;
   bool _refreshing = false;
+  // Clients and projects came back once; until then an empty list is not news.
+  bool _optionsLoaded = false;
 
   // Reloads clients and projects, e.g. when the member was assigned to a
   // project after the popup opened. Keeps the client if it still exists.
@@ -48,9 +50,8 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     safeSetState(() => _refreshing = true);
     await _model.fetchdata(context);
     if (!mounted) return;
-    final clientStillExists = FFAppState()
-        .clientsOptions
-        .any((e) => e.id == _model.clientDropDownValue);
+    final clientStillExists =
+        _clientsWithProjects().any((e) => e.id == _model.clientDropDownValue);
     if (!clientStillExists) {
       _model.clientDropDownValue = null;
       _model.selectedClient = null;
@@ -63,6 +64,23 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     _model.dropdownatividadesValueController?.value = null;
     FFAppState().taskOptions = [];
     safeSetState(() => _refreshing = false);
+  }
+
+  // Projects the member is on (assignments/projects/user).
+  List<ProjectOptionStruct> _assignedProjects() => FFAppState()
+      .projectOptions
+      .map(ProjectOptionStruct.maybeFromMap)
+      .withoutNulls
+      .toList();
+
+  // GET /clients lists every client of the organization; only the ones with a
+  // project assigned to the member can be recorded against.
+  List<OptionStruct> _clientsWithProjects() {
+    final clientIds = _assignedProjects().map((p) => p.clientId).toSet();
+    return FFAppState()
+        .clientsOptions
+        .where((client) => clientIds.contains(client.id))
+        .toList();
   }
 
   @override
@@ -137,7 +155,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
       if (!mounted) return;
       await _model.fetchdata(context);
       if (!mounted) return;
-      safeSetState(() {});
+      safeSetState(() => _optionsLoaded = true);
     });
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -395,8 +413,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                             onDeleted: () => _selectActivities([]),
                           ),
                         if (selected.isEmpty)
-                          Text(
-                              'Escolha a atividade',
+                          Text('Escolha a atividade',
                               style: ZocText.body(color: ZocColors.faint)),
                       ],
                     ),
@@ -421,12 +438,10 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     final seconds = remaining.inSeconds.clamp(0, 1 << 31);
     final closesIn =
         '${(seconds ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}';
-    final projects = FFAppState()
-        .projectOptions
-        .map(ProjectOptionStruct.maybeFromMap)
-        .withoutNulls
+    final projects = _assignedProjects()
         .where((project) => project.clientId == _model.selectedClient)
         .toList();
+    final clients = _clientsWithProjects();
     final hasScreenshot = widget.screenshotBase64?.isNotEmpty == true;
 
     return SizedBox(
@@ -495,14 +510,10 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                               controller:
                                   _model.clientDropDownValueController ??=
                                       FormFieldController<String>(null),
-                              options: FFAppState()
-                                  .clientsOptions
-                                  .map((client) => client.id)
-                                  .toList(),
-                              optionLabels: FFAppState()
-                                  .clientsOptions
-                                  .map((client) => client.name)
-                                  .toList(),
+                              options:
+                                  clients.map((client) => client.id).toList(),
+                              optionLabels:
+                                  clients.map((client) => client.name).toList(),
                               onChanged: (value) {
                                 _model.clientDropDownValue = value;
                                 _model.selectedClient = value;
@@ -517,6 +528,17 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 safeSetState(() {});
                               },
                             ),
+                            if (clients.isEmpty &&
+                                _optionsLoaded &&
+                                !_refreshing) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                'Você ainda não está em nenhum projeto. Peça ao administrador para incluir você e toque em atualizar.',
+                                key: const ValueKey('popup-no-projects'),
+                                style:
+                                    ZocText.caption().copyWith(fontSize: 12.5),
+                              ),
+                            ],
                             const SizedBox(height: 11),
                             ZocSelect<String>(
                               label: 'Projeto',
