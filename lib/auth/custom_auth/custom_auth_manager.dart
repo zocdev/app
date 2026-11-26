@@ -112,10 +112,12 @@ class CustomAuthManager {
 
     final authTokenExists =
         authenticationToken != null && authenticationToken!.isNotEmpty;
+    final hasRefreshToken =
+        refreshToken != null && refreshToken!.isNotEmpty;
     final tokenExpired = tokenExpiration != null &&
         tokenExpiration!.isBefore(DateTime.now());
     final updatedUser = Zoc1AuthUser(
-      loggedIn: authTokenExists && !tokenExpired,
+      loggedIn: hasRefreshToken || (authTokenExists && !tokenExpired),
       uid: uid,
     );
     zoc1AuthUserSubject.add(updatedUser);

@@ -3,6 +3,7 @@ import '/index.dart';
 import '/ui/zoc_ui.dart';
 import 'package:flutter/material.dart';
 import '/auth/auth_session.dart';
+import '/utils/offline_sync_service.dart';
 import 'confirma_logout_model.dart';
 export 'confirma_logout_model.dart';
 
@@ -37,6 +38,9 @@ class _ConfirmaLogoutWidgetState extends State<ConfirmaLogoutWidget> {
   }
 
   Future<void> _logout() async {
+    await OfflineSyncService.instance
+        .flush(totalTimeout: const Duration(seconds: 4));
+    if (!mounted) return;
     GoRouter.of(context).prepareAuthEvent();
     await AuthSession.logout();
     if (!mounted) return;

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '/auth/auth_session.dart';
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -16,6 +17,8 @@ import '/desktop/pause_return_dialog.dart';
 import '/desktop/pause_sheet.dart';
 import '/desktop/popup_window.dart';
 import '/utils/capture_screenshot.dart';
+import '/utils/catalog_cache_service.dart';
+import '/utils/offline_sync_service.dart';
 import '/utils/time_tracking.dart';
 import '/expediente/expediente_widget.dart'
     show expedienteGoalLabel, expedienteHoursLabel;
@@ -51,6 +54,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
   bool _hoursLoading = false;
 
   final PauseController _pauses = PauseController.instance;
+  final OfflineSyncService _offlineSync = OfflineSyncService.instance;
   late bool _wasPaused;
   bool _returnDialogOpen = false;
   bool _sheetOpen = false;
@@ -61,6 +65,9 @@ class _LogoutWidgetState extends State<LogoutWidget>
     super.initState();
     _model = createModel(context, () => LogoutModel());
     WidgetsBinding.instance.addObserver(this);
+    CatalogCacheService.instance.restoreFromCache();
+    _offlineSync.restoreFromCache();
+    _offlineSync.addListener(_onOfflineSyncChanged);
     _wasPaused = _pauses.isPaused;
     _pauses.addListener(_onPauseChanged);
     _pauses.onOpenSheetRequested = _openPauseSheet;
@@ -74,6 +81,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
       _startUserPolling();
       unawaited(_loadWorkedHours());
       unawaited(_startPresence());
+      unawaited(_syncPendingAndCatalog());
     });
 
     var ticks = 0;
@@ -95,12 +103,14 @@ class _LogoutWidgetState extends State<LogoutWidget>
     if (state == AppLifecycleState.resumed) {
       unawaited(_refreshUserSettings());
       unawaited(_loadWorkedHours());
+      unawaited(_syncPendingAndCatalog());
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _offlineSync.removeListener(_onOfflineSyncChanged);
     _pauses.removeListener(_onPauseChanged);
     if (_pauses.onOpenSheetRequested == _openPauseSheet) {
       _pauses.onOpenSheetRequested = null;
@@ -154,10 +164,43 @@ class _LogoutWidgetState extends State<LogoutWidget>
       callback: (_) {
         unawaited(_refreshUserSettings());
         unawaited(_loadWorkedHours());
+        unawaited(_syncPendingAndCatalog());
         // Presence heartbeat every 60 s (every other 30 s poll).
         if (++_pollTicks % 2 == 0) unawaited(_pauses.heartbeat());
       },
       startImmediately: false,
+    );
+  }
+
+  void _onOfflineSyncChanged() {
+    if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) safeSetState(() {});
+      });
+      return;
+    }
+    safeSetState(() {});
+  }
+
+  Future<void> _syncPendingAndCatalog({bool showFeedback = false}) async {
+    await AuthSession.refreshIfDue();
+    final synced = await _offlineSync.flush();
+    if (synced > 0 && mounted) {
+      unawaited(_loadWorkedHours());
+      if (showFeedback) {
+        _showSnack(
+          synced == 1
+              ? '1 registro pendente sincronizado.'
+              : '$synced registros pendentes sincronizados.',
+        );
+      }
+    } else if (showFeedback && mounted && _offlineSync.pendingCount > 0) {
+      _showSnack('Ainda sem conexão. Tentaremos sincronizar automaticamente.');
+    }
+    await CatalogCacheService.instance.syncIfStale(
+      maxAge: const Duration(minutes: 5),
     );
   }
 
@@ -370,10 +413,19 @@ class _LogoutWidgetState extends State<LogoutWidget>
             ? 'data:image/jpeg;base64,$rawScreenshot'
             : null;
       }
+      unawaited(_offlineSync.flush());
+      final preSync = CatalogCacheService.instance.sync(
+        totalTimeout: const Duration(seconds: 4),
+      );
       if (!isWeb) {
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.wait([
+          Future.delayed(const Duration(seconds: 1)),
+          preSync,
+        ]);
         if (!mounted) return;
         await prepareDesktopWindowForPopup();
+      } else {
+        await preSync;
       }
       if (!mounted) return;
       await showModalBottomSheet(
@@ -394,6 +446,7 @@ class _LogoutWidgetState extends State<LogoutWidget>
                 ignoreAfter: Duration(
                   minutes: periodForPopup > 1 ? periodForPopup - 1 : 1,
                 ),
+                preSynced: true,
               ),
             ),
           );
@@ -586,6 +639,15 @@ class _LogoutWidgetState extends State<LogoutWidget>
                 onOpen: () => context.pushNamed(ExpedienteWidget.routeName),
               ),
               const SizedBox(height: 16),
+              if (_offlineSync.pendingCount > 0) ...[
+                _PendingSyncBanner(
+                  pendingCount: _offlineSync.pendingCount,
+                  syncing: _offlineSync.isSyncing,
+                  onSyncNow: () =>
+                      unawaited(_syncPendingAndCatalog(showFeedback: true)),
+                ),
+                const SizedBox(height: 12),
+              ],
               Row(
                 children: [
                   if (pause.timed) ...[
@@ -713,6 +775,15 @@ class _LogoutWidgetState extends State<LogoutWidget>
                 ),
               ),
               const SizedBox(height: 16),
+              if (_offlineSync.pendingCount > 0) ...[
+                _PendingSyncBanner(
+                  pendingCount: _offlineSync.pendingCount,
+                  syncing: _offlineSync.isSyncing,
+                  onSyncNow: () =>
+                      unawaited(_syncPendingAndCatalog(showFeedback: true)),
+                ),
+                const SizedBox(height: 12),
+              ],
               Row(
                 children: [
                   Expanded(
@@ -970,6 +1041,62 @@ class _PausedDayRow extends StatelessWidget {
                   Text('Ver registros',
                       style: ZocText.link().copyWith(fontSize: 12)),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingSyncBanner extends StatelessWidget {
+  const _PendingSyncBanner({
+    required this.pendingCount,
+    required this.syncing,
+    required this.onSyncNow,
+  });
+
+  final int pendingCount;
+  final bool syncing;
+  final VoidCallback onSyncNow;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = pendingCount == 1
+        ? '1 registro salvo localmente aguardando conexão'
+        : '$pendingCount registros salvos localmente aguardando conexão';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: ZocColors.warnSurface,
+        borderRadius: BorderRadius.circular(ZocRadii.input),
+        border: Border.all(color: PauseColors.amber.withValues(alpha: .3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off_rounded,
+              size: 16, color: ZocColors.warnInk),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: ZocText.caption(
+                      color: ZocColors.warnInk, weight: FontWeight.w500)
+                  .copyWith(fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: syncing ? null : onSyncNow,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text(
+                syncing ? 'Enviando...' : 'Sincronizar',
+                style: ZocText.link(
+                  color: syncing ? ZocColors.faint : ZocColors.warnInk,
+                ).copyWith(fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ),

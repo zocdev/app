@@ -71,6 +71,11 @@ class AppStateNotifier extends ChangeNotifier {
     showSplashImage = false;
     notifyListeners();
   }
+
+  @visibleForTesting
+  static void resetForTest() {
+    _instance = null;
+  }
 }
 
 GoRouter createRouter(AppStateNotifier appStateNotifier,

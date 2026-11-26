@@ -5,6 +5,8 @@ import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/form_field_controller.dart';
 import '/ui/zoc_ui.dart';
+import '/utils/catalog_cache_service.dart';
+import '/utils/offline_sync_service.dart';
 
 /// Parses "HH:mm" into minutes (1 to 1440), same rules as the web form.
 int durationMinutes(String value) {
@@ -52,7 +54,7 @@ String _apiMessage(ApiCallResponse response, String fallback) {
 /// Opens the "Registrar tempo" form as a ZOC modal so the user can add past
 /// time without the web app.
 Future<void> showAddTimeDialog(BuildContext context) async {
-  final saved = await showZocModal<bool>(
+  final result = await showZocModal<({bool approved, bool queued})>(
     context,
     barrierDismissible: false,
     builder: (dialog) => GestureDetector(
@@ -60,11 +62,13 @@ Future<void> showAddTimeDialog(BuildContext context) async {
       child: const _AddTimeDialog(),
     ),
   );
-  if (saved == null || !context.mounted) return;
+  if (result == null || !context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(saved
-        ? 'Registro aprovado: as horas já entram nos relatórios.'
-        : 'Solicitação enviada. Aguarde a aprovação do administrador ou supervisor.'),
+    content: Text(result.queued
+        ? 'Sem conexão. Solicitação salva localmente e será enviada quando a internet voltar.'
+        : result.approved
+            ? 'Registro aprovado: as horas já entram nos relatórios.'
+            : 'Solicitação enviada. Aguarde a aprovação do administrador ou supervisor.'),
   ));
 }
 
@@ -80,6 +84,7 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
   String? _error;
   bool _loading = true;
   bool _busy = false;
+  bool _fromOfflineCache = false;
   final _clientController = FormFieldController<String>(null);
   final _projectController = FormFieldController<String>(null);
   final _taskController = FormFieldController<String>(null);
@@ -113,13 +118,33 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
   }
 
   Future<void> _load() async {
-    final response =
-        await TimeRequestWorkspaceCall.call(token: currentAuthenticationToken);
+    final response = await TimeRequestWorkspaceCall.call(
+      token: currentAuthenticationToken,
+      timeout: const Duration(seconds: 8),
+    );
     if (!mounted) return;
+    if (response.succeeded && response.jsonBody is Map) {
+      final workspace = Map<String, dynamic>.from(response.jsonBody);
+      await CatalogCacheService.instance.saveTimeRequestWorkspace(workspace);
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _fromOfflineCache = false;
+        _workspace = workspace;
+        final clients = _clients;
+        if (clients.length == 1) {
+          _clientController.value = '${clients.first['id']}';
+        }
+      });
+      return;
+    }
+
+    final cached = CatalogCacheService.instance.cachedTimeRequestWorkspace();
     setState(() {
       _loading = false;
-      if (response.succeeded && response.jsonBody is Map) {
-        _workspace = Map<String, dynamic>.from(response.jsonBody);
+      if (isTransientApiFailure(response) && cached != null) {
+        _workspace = cached;
+        _fromOfflineCache = true;
         final clients = _clients;
         if (clients.length == 1) {
           _clientController.value = '${clients.first['id']}';
@@ -186,8 +211,7 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
       return;
     }
     setState(() => _busy = true);
-    final response = await SubmitTimeRequestCall.call(
-      token: currentAuthenticationToken,
+    final result = await OfflineSyncService.instance.submitOrQueueTimeRequest(
       userId: '${_workspace!['user_id']}',
       projectId: project,
       taskId: task,
@@ -197,14 +221,17 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
       remote: _remote,
     );
     if (!mounted) return;
-    if (response.succeeded) {
-      final body = response.jsonBody;
-      Navigator.of(context).pop(body is Map && body['auto_approved'] == true);
+    if (result.outcome == SubmitEntryOutcome.sent ||
+        result.outcome == SubmitEntryOutcome.queued) {
+      Navigator.of(context).pop((
+        approved: result.autoApproved,
+        queued: result.outcome == SubmitEntryOutcome.queued,
+      ));
       return;
     }
     setState(() {
       _busy = false;
-      _error = _apiMessage(response, 'Não foi possível enviar. Tente novamente.');
+      _error = result.errorMessage ?? 'Não foi possível enviar. Tente novamente.';
     });
   }
 
@@ -277,8 +304,14 @@ class _AddTimeDialogState extends State<_AddTimeDialog> {
                   child: CircularProgressIndicator(color: ZocColors.brand),
                 ),
               )
-            else if (_workspace != null)
+            else if (_workspace != null) ...[
+              if (_fromOfflineCache) ...[
+                const SizedBox(height: 10),
+                const ZocNotice(
+                    'Sem conexão · usando projetos e atividades salvos localmente.'),
+              ],
               ..._form(),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 12),
               ZocNotice(_error!, kind: ZocNoticeKind.error),

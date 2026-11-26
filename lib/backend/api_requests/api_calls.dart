@@ -123,6 +123,7 @@ class AddAtivitiesCall {
     String? notes = '',
     String? createdAt = '',
     String? screenshot = '',
+    Duration? timeout,
   }) async {
     final tasks = _serializeList(tasksList);
     final screenshotPayload = screenshot?.trim() ?? '';
@@ -154,6 +155,7 @@ class AddAtivitiesCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }
@@ -163,6 +165,7 @@ class GetProjectsCall {
     String? token = '',
     String? orgId = '',
     String? userid = '',
+    Duration? timeout,
   }) async {
     return ApiManager.instance.makeApiCall(
       callName: 'GetProjects',
@@ -181,6 +184,7 @@ class GetProjectsCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }
@@ -188,6 +192,7 @@ class GetProjectsCall {
 class GetClientsCall {
   static Future<ApiCallResponse> call({
     String? token = '',
+    Duration? timeout,
   }) async {
     return ApiManager.instance.makeApiCall(
       callName: 'GetClients',
@@ -205,6 +210,7 @@ class GetClientsCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }
@@ -213,6 +219,7 @@ class GetAtivitiesByProjectCall {
   static Future<ApiCallResponse> call({
     String? token = '',
     String? id = '',
+    Duration? timeout,
   }) async {
     return ApiManager.instance.makeApiCall(
       callName: 'GetAtivitiesByProject',
@@ -230,6 +237,7 @@ class GetAtivitiesByProjectCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }
@@ -662,6 +670,7 @@ class IgnoredPopUpsCall {
 class TimeRequestWorkspaceCall {
   static Future<ApiCallResponse> call({
     String? token = '',
+    Duration? timeout,
   }) async {
     return ApiManager.instance.makeApiCall(
       callName: 'TimeRequestWorkspace',
@@ -678,6 +687,7 @@ class TimeRequestWorkspaceCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }
@@ -694,6 +704,7 @@ class SubmitTimeRequestCall {
     required DateTime endedAt,
     required String reason,
     required bool remote,
+    Duration? timeout,
   }) async {
     return ApiManager.instance.makeApiCall(
       callName: 'SubmitTimeRequest',
@@ -720,6 +731,7 @@ class SubmitTimeRequestCall {
       cache: false,
       isStreamingApi: false,
       alwaysAllowBody: false,
+      timeout: timeout ?? const Duration(seconds: 20),
     );
   }
 }

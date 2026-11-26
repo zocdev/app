@@ -8,6 +8,7 @@ import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_config.dart';
 import '/backend/api_requests/api_manager.dart';
 import '/desktop/pause_controller.dart';
+import '/utils/catalog_cache_service.dart';
 
 /// Outcome of `POST /auth/refresh`.
 enum RefreshOutcome {
@@ -210,6 +211,7 @@ class AuthSession {
     ApiManager.syncAccessToken(null);
     // The API closes the open pause on /auth/logout.
     PauseController.instance.clear();
+    await CatalogCacheService.instance.clear();
   }
 
   /// Called by the ApiManager when a 401 could not be fixed by a refresh.

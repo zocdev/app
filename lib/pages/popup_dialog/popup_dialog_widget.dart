@@ -1,5 +1,3 @@
-import '/auth/custom_auth/auth_util.dart';
-import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
 import '/backend/schema/structs/index.dart';
@@ -15,16 +13,20 @@ import 'dart:async';
 import 'dart:convert' show base64Decode;
 import '/ui/zoc_ui.dart';
 import '/utils/capture_screenshot.dart';
+import '/utils/catalog_cache_service.dart';
+import '/utils/offline_sync_service.dart';
 
 class PopupDialogWidget extends StatefulWidget {
   const PopupDialogWidget({
     super.key,
     this.screenshotBase64,
     this.ignoreAfter = const Duration(minutes: 15),
+    this.preSynced = false,
   });
 
   final String? screenshotBase64;
   final Duration ignoreAfter;
+  final bool preSynced;
 
   @override
   State<PopupDialogWidget> createState() => _PopupDialogWidgetState();
@@ -43,27 +45,52 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
   // Clients and projects came back once; until then an empty list is not news.
   bool _optionsLoaded = false;
 
-  // Reloads clients and projects, e.g. when the member was assigned to a
-  // project after the popup opened. Keeps the client if it still exists.
+  // Reloads clients, projects, and tasks, e.g. when the member was assigned
+  // to a project after the popup opened. Keeps valid selections on success.
   Future<void> _refreshOptions() async {
     if (_refreshing) return;
     safeSetState(() => _refreshing = true);
-    await _model.fetchdata(context);
+    final result = await _model.fetchdata(context, force: true);
     if (!mounted) return;
-    final clientStillExists =
-        _clientsWithProjects().any((e) => e.id == _model.clientDropDownValue);
-    if (!clientStillExists) {
-      _model.clientDropDownValue = null;
-      _model.selectedClient = null;
-      _model.clientDropDownValueController?.value = null;
+    if (result.succeeded) {
+      final clientStillExists =
+          _clientsWithProjects().any((e) => e.id == _model.clientDropDownValue);
+      if (!clientStillExists) {
+        _model.clientDropDownValue = null;
+        _model.selectedClient = null;
+        _model.clientDropDownValueController?.value = null;
+      }
+      final projectStillExists = clientStillExists &&
+          _assignedProjects().any((p) =>
+              p.id == _model.dropdownprojetosValue &&
+              p.clientId == _model.selectedClient);
+      if (!projectStillExists) {
+        _model.dropdownprojetosValue = null;
+        _model.selectedProjects = null;
+        _model.dropdownprojetosValueController?.value = null;
+        _model.dropdownatividadesValue = null;
+        _model.dropdownatividadesValueController?.value = null;
+        FFAppState().taskOptions = [];
+      } else if (_model.selectedProjects != null) {
+        final refreshedTasks = CatalogCacheService.instance
+            .tasksForProject(_model.selectedProjects!);
+        FFAppState().taskOptions = refreshedTasks;
+        final validTaskIds = refreshedTasks
+            .map((t) => t['id']?.toString())
+            .whereType<String>()
+            .toSet();
+        final selectedTasks = _model.dropdownatividadesValue;
+        if (selectedTasks != null &&
+            selectedTasks.any((id) => !validTaskIds.contains(id))) {
+          _model.dropdownatividadesValue = null;
+          _model.dropdownatividadesValueController?.value = null;
+        }
+      }
     }
-    _model.dropdownprojetosValue = null;
-    _model.selectedProjects = null;
-    _model.dropdownprojetosValueController?.value = null;
-    _model.dropdownatividadesValue = null;
-    _model.dropdownatividadesValueController?.value = null;
-    FFAppState().taskOptions = [];
-    safeSetState(() => _refreshing = false);
+    safeSetState(() {
+      _optionsLoaded = true;
+      _refreshing = false;
+    });
   }
 
   // Projects the member is on (assignments/projects/user).
@@ -110,8 +137,7 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
     FFAppState().popUpIgnorado = FFAppState().popUpIgnorado + 1;
     FFAppState().isPopupVisible = false;
     _dismissPopup();
-    await AddAtivitiesCall.call(
-      token: currentAuthenticationToken,
+    await OfflineSyncService.instance.submitOrQueuePopupEntry(
       project: '',
       remote: FFAppState().isRemote,
       ignoredPopUp: true,
@@ -133,11 +159,42 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
       }
     }
 
+    CatalogCacheService.instance.restoreFromCache();
+    OfflineSyncService.instance.restoreFromCache();
     FFAppState().isPopupVisible = true;
     FFAppState().taskOptions = [];
+    _optionsLoaded = widget.preSynced || CatalogCacheService.instance.hasAnyCatalog;
 
     // On component load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
+      final alreadyFresh = widget.preSynced &&
+          CatalogCacheService.instance
+              .wasRecentlySynced(const Duration(seconds: 15));
+      final Future<void> fetchFuture;
+      if (!alreadyFresh && !widget.preSynced) {
+        fetchFuture = _model.fetchdata(context, force: true).then((_) {
+          if (!mounted) return;
+          if (_model.selectedProjects != null) {
+            FFAppState().taskOptions = CatalogCacheService.instance
+                .tasksForProject(_model.selectedProjects!);
+          }
+          safeSetState(() => _optionsLoaded = true);
+        });
+      } else if (!alreadyFresh) {
+        // Pre-sync timed out or failed offline: retry quietly without blocking.
+        fetchFuture = Future<void>.value();
+        unawaited(_model.fetchdata(context, force: true).then((_) {
+          if (!mounted) return;
+          if (_model.selectedProjects != null) {
+            FFAppState().taskOptions = CatalogCacheService.instance
+                .tasksForProject(_model.selectedProjects!);
+          }
+          safeSetState(() => _optionsLoaded = true);
+        }));
+      } else {
+        fetchFuture = Future<void>.value();
+      }
+
       await prepareDesktopWindowForPopup();
       if (!mounted) return;
       FocusScope.of(context).requestFocus();
@@ -152,9 +209,12 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
           .setAsset('assets/audios/aviso.mp3')
           .then((_) => _model.soundPlayer!.play());
 
+      await fetchFuture;
       if (!mounted) return;
-      await _model.fetchdata(context);
-      if (!mounted) return;
+      if (_model.selectedProjects != null) {
+        FFAppState().taskOptions = CatalogCacheService.instance
+            .tasksForProject(_model.selectedProjects!);
+      }
       safeSetState(() => _optionsLoaded = true);
     });
 
@@ -252,26 +312,45 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
       }
       _ignoreTimer?.cancel();
       _submitted = true;
-      _model.apiResult4ww = await AddAtivitiesCall.call(
-        token: currentAuthenticationToken,
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final result = await OfflineSyncService.instance.submitOrQueuePopupEntry(
         remote: FFAppState().isRemote,
         ignoredPopUp: false,
         tasksList: _model.dropdownatividadesValue,
         notes: _model.textController.text,
         createdAt: functions.timeNowTZ(),
-        project: _model.dropdownprojetosValue,
+        project: _model.dropdownprojetosValue ?? '',
         screenshot: widget.screenshotBase64,
       );
 
       // 403: admin turned time tracking off while the popup was open.
-      if ((_model.apiResult4ww?.succeeded ?? true) ||
-          _model.apiResult4ww?.statusCode == 403) {
+      if (result.handled) {
         FFAppState().isPopupVisible = false;
         if (mounted) _dismissPopup();
+        if (result.outcome == SubmitEntryOutcome.queued) {
+          messenger?.showSnackBar(const SnackBar(
+            content: Text(
+                'Sem conexão. Registro salvo localmente e será sincronizado quando a internet voltar.'),
+          ));
+        }
       } else {
         _submitted = false;
         if (mounted) {
           _scheduleIgnoreTimer();
+          await showDialog(
+            context: context,
+            builder: (alertDialogContext) => AlertDialog(
+              title: const Text('Atenção'),
+              content: Text(result.errorMessage ??
+                  'Não foi possível salvar o registro. Verifique os dados e tente novamente.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(alertDialogContext),
+                  child: const Text('Ok'),
+                ),
+              ],
+            ),
+          );
         }
       }
 
@@ -532,11 +611,27 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 _optionsLoaded &&
                                 !_refreshing) ...[
                               const SizedBox(height: 6),
-                              Text(
-                                'Você ainda não está em nenhum projeto. Peça ao administrador para incluir você e toque em atualizar.',
-                                key: const ValueKey('popup-no-projects'),
-                                style:
-                                    ZocText.caption().copyWith(fontSize: 12.5),
+                              if (CatalogCacheService
+                                  .instance.projectsSyncFailed)
+                                Text(
+                                  'Sem conexão para carregar clientes e projetos. Verifique sua internet e toque em atualizar.',
+                                  key: const ValueKey('popup-sync-error'),
+                                  style: ZocText.caption()
+                                      .copyWith(fontSize: 12.5),
+                                )
+                              else
+                                Text(
+                                  'Você ainda não está em nenhum projeto. Peça ao administrador para incluir você e toque em atualizar.',
+                                  key: const ValueKey('popup-no-projects'),
+                                  style: ZocText.caption()
+                                      .copyWith(fontSize: 12.5),
+                                ),
+                            ] else if (CatalogCacheService
+                                .instance.lastSyncFailed) ...[
+                              const SizedBox(height: 6),
+                              const ZocNotice(
+                                'Sem conexão · usando clientes, projetos e tarefas salvos localmente.',
+                                key: ValueKey('popup-offline-cache'),
                               ),
                             ],
                             const SizedBox(height: 11),
@@ -562,23 +657,27 @@ class _PopupDialogWidgetState extends State<PopupDialogWidget> {
                                 _model.dropdownatividadesValue = null;
                                 _model.dropdownatividadesValueController
                                     ?.value = null;
-                                FFAppState().taskOptions = [];
+                                final projectId = value ?? '';
+                                FFAppState().taskOptions = projectId.isEmpty
+                                    ? []
+                                    : CatalogCacheService.instance
+                                        .tasksForProject(projectId);
                                 safeSetState(() {});
-                                _model.activities =
-                                    await GetAtivitiesByProjectCall.call(
-                                  token: currentAuthenticationToken,
-                                  id: _model.selectedProjects,
-                                );
-                                if (!mounted) return;
-                                if (_model.activities?.succeeded ?? true) {
-                                  FFAppState().taskOptions = (_model
-                                              .activities?.jsonBody is List
-                                          ? _model.activities!.jsonBody as List
-                                          : const [])
-                                      .toList()
-                                      .cast<dynamic>();
+
+                                if (projectId.isNotEmpty &&
+                                    !CatalogCacheService.instance
+                                        .hasTasksForProject(projectId)) {
+                                  await CatalogCacheService.instance
+                                      .refreshProjectTasks(projectId);
+                                  if (!mounted ||
+                                      _model.selectedProjects != projectId) {
+                                    return;
+                                  }
+                                  FFAppState().taskOptions = CatalogCacheService
+                                      .instance
+                                      .tasksForProject(projectId);
+                                  safeSetState(() {});
                                 }
-                                safeSetState(() {});
                               },
                             ),
                             const SizedBox(height: 11),

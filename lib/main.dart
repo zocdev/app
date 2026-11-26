@@ -23,6 +23,8 @@ import 'flutter_flow/internationalization.dart';
 import 'index.dart';
 import '/ui/zoc_theme.dart';
 import '/desktop/popup_window.dart';
+import '/utils/catalog_cache_service.dart';
+import '/utils/offline_sync_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -55,6 +57,8 @@ void main() async {
     await authManager.initialize();
     await appState.initializePersistedState();
     PauseController.instance.restoreFromCache();
+    CatalogCacheService.instance.restoreFromCache();
+    OfflineSyncService.instance.restoreFromCache();
 
     ApiManager.configureAuthSession(
       accessTokenGetter: () => authManager.authenticationToken,
@@ -211,8 +215,9 @@ class _MyAppState extends State<MyApp> with WindowListener {
 
     Future.microtask(() async {
       try {
-        final hasStoredSession = authManager.authenticationToken != null &&
-            authManager.authenticationToken!.isNotEmpty;
+        final hasStoredSession =
+            (authManager.authenticationToken ?? '').isNotEmpty ||
+                (authManager.refreshToken ?? '').isNotEmpty;
 
         if (hasStoredSession) {
           // Offline at startup keeps the stored session: only a refused
@@ -417,6 +422,8 @@ class _PauseTray {
         MenuItemLabel(
           label: 'Encerrar sessão',
           onClicked: (menuItem) async {
+            await OfflineSyncService.instance
+                .flush(totalTimeout: const Duration(seconds: 4));
             await AuthSession.logout();
             FFAppState().UserData = null;
             FFAppState().email = '';

@@ -498,6 +498,7 @@ class ApiManager {
     bool isStreamingApi = false,
     ApiCallOptions? options,
     http.Client? client,
+    Duration timeout = const Duration(seconds: 20),
   }) async {
     final callOptions = options ??
         ApiCallOptions(
@@ -517,10 +518,12 @@ class ApiManager {
         );
     final requestHeaders = Map<String, dynamic>.from(headers);
     final resolvedToken = _accessToken ?? _accessTokenGetter?.call();
+    final existingBearer = _bearer(requestHeaders);
     if (resolvedToken != null &&
         resolvedToken.isNotEmpty &&
-        !requestHeaders.containsKey(HttpHeaders.authorizationHeader) &&
-        !requestHeaders.containsKey('Authorization')) {
+        (existingBearer == null || existingBearer == 'null')) {
+      requestHeaders.remove('Authorization');
+      requestHeaders.remove(HttpHeaders.authorizationHeader);
       requestHeaders[HttpHeaders.authorizationHeader] = 'Bearer $resolvedToken';
     }
 
@@ -545,6 +548,7 @@ class ApiManager {
       alwaysAllowBody: alwaysAllowBody,
       isStreamingApi: isStreamingApi,
       client: client,
+      timeout: timeout,
     );
 
     if (result.statusCode == 401 &&
@@ -565,6 +569,7 @@ class ApiManager {
         final retryToken = _accessToken ?? _accessTokenGetter?.call();
         if (retryToken != null && retryToken.isNotEmpty) {
           retryHeaders.remove('Authorization');
+          retryHeaders.remove(HttpHeaders.authorizationHeader);
           retryHeaders[HttpHeaders.authorizationHeader] = 'Bearer $retryToken';
         }
 
@@ -581,6 +586,7 @@ class ApiManager {
           alwaysAllowBody: alwaysAllowBody,
           isStreamingApi: isStreamingApi,
           client: client,
+          timeout: timeout,
         );
       } else if (_onUnauthorized != null) {
         await _onUnauthorized!.call();
@@ -607,11 +613,12 @@ class ApiManager {
     required bool alwaysAllowBody,
     required bool isStreamingApi,
     http.Client? client,
+    Duration timeout = const Duration(seconds: 20),
   }) async {
-    try {
+    Future<ApiCallResponse> run() {
       switch (callType) {
         case ApiCallType.GET:
-          return await urlRequest(
+          return urlRequest(
             callType,
             apiUrl,
             headers,
@@ -623,7 +630,7 @@ class ApiManager {
           );
         case ApiCallType.DELETE:
           return alwaysAllowBody
-              ? await requestWithBody(
+              ? requestWithBody(
                   callType,
                   apiUrl,
                   headers,
@@ -637,7 +644,7 @@ class ApiManager {
                   isStreamingApi,
                   client: client,
                 )
-              : await urlRequest(
+              : urlRequest(
                   callType,
                   apiUrl,
                   headers,
@@ -650,7 +657,7 @@ class ApiManager {
         case ApiCallType.POST:
         case ApiCallType.PUT:
         case ApiCallType.PATCH:
-          return await requestWithBody(
+          return requestWithBody(
             callType,
             apiUrl,
             headers,
@@ -665,6 +672,10 @@ class ApiManager {
             client: client,
           );
       }
+    }
+
+    try {
+      return isStreamingApi ? await run() : await run().timeout(timeout);
     } catch (e) {
       return ApiCallResponse(null, {}, -1, exception: e);
     }

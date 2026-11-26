@@ -1,8 +1,7 @@
-import '/auth/custom_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
-import '/backend/schema/structs/index.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/form_field_controller.dart';
+import '/utils/catalog_cache_service.dart';
 import 'popup_dialog_widget.dart' show PopupDialogWidget;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -76,51 +75,9 @@ class PopupDialogModel extends FlutterFlowModel<PopupDialogWidget> {
   }
 
   /// Action blocks.
-  Future fetchdata(BuildContext context) async {
-    ApiCallResponse? clients;
-    ApiCallResponse? projects;
-
-    await Future.wait([
-      Future(() async {
-        clients = await GetClientsCall.call(
-          token: currentAuthenticationToken,
-        );
-
-        if ((clients?.succeeded ?? true)) {
-          FFAppState().clientsOptions =
-              (((clients?.jsonBody is List ? clients!.jsonBody as List : const [])
-                          .map<OptionStruct?>(OptionStruct.maybeFromMap)
-                          .toList()) as Iterable<OptionStruct?>)
-                  .withoutNulls
-                  .toList()
-                  .cast<OptionStruct>();
-        } else {
-          return;
-        }
-      }),
-      Future(() async {
-        projects = await GetProjectsCall.call(
-          token: currentAuthenticationToken,
-          userid: UserDataStruct.maybeFromMap(FFAppState().UserData)?.user.id,
-        );
-
-        if ((projects?.succeeded ?? true)) {
-          FFAppState().projectOptions =
-              (((projects?.jsonBody is List
-                              ? projects!.jsonBody as List
-                              : const [])
-                          .map<ProjectOptionStruct?>(
-                              ProjectOptionStruct.maybeFromMap)
-                          .toList()) as Iterable<ProjectOptionStruct?>)
-                  .withoutNulls
-                  .map((e) => e.toMap())
-                  .toList()
-                  .toList()
-                  .cast<dynamic>();
-        } else {
-          return;
-        }
-      }),
-    ]);
-  }
+  Future<CatalogSyncResult> fetchdata(
+    BuildContext context, {
+    bool force = true,
+  }) =>
+      CatalogCacheService.instance.sync(force: force);
 }
